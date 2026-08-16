@@ -39,8 +39,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `pnpm run docs`, not `pnpm docs` => `docs` collides with the built-in
+      # `npm docs` command (opens the pkg page in a browser), which is what the
+      # bare form resolved to on the runner => exit 3. `run` forces our script.
       - name: Generate docs (TypeDoc => docs/)
-        run: pnpm docs
+        run: pnpm run docs
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

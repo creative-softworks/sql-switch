@@ -34,13 +34,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: pnpm run typecheck
 
       - name: Build (dual CJS/ESM + d.ts)
-        run: pnpm build
+        run: pnpm run build
 
       - name: Smoke test (SQLite, no DB needed)
-        run: pnpm smoke
+        run: pnpm run smoke
 
       # takes the connection url straight from the repo secret. swap-test creates &
       # drops its own `swaptest` schema, and self-skips (exit 0) if the secret is
@@ -48,4 +48,4 @@ jobs:
       - name: Engine swap test (Postgres)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pnpm swap-test
+        run: pnpm run swap-test
