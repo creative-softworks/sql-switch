@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Universal hot-swappable DAL — SQLite in dev, PostgreSQL in prod, same fluent API",
   "type": "module",
+  "packageManager": "pnpm@10.26.1",
   "exports": {
     ".": {
       "types": "./dist/database/index.d.ts",

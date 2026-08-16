@@ -19,11 +19,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # pnpm must land before setup-node so the `cache: pnpm` store hook resolves
+      # pnpm version is pinned via package.json "packageManager", so action-setup,
+      # corepack & local dev all agree. bumping it is a deliberate one-line change.
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -33,12 +32,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # pnpm 10+ blocks lifecycle scripts by default, so better-sqlite3 & esbuild
-      # never fetch/build their native binaries on a plain install => force it here,
-      # otherwise smoke (better-sqlite3) and build (esbuild) both blow up at runtime
-      - name: Rebuild native modules
-        run: pnpm rebuild
 
       - name: Typecheck
         run: pnpm typecheck
