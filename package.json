@@ -1,0 +1,59 @@
+{
+  "name": "sql-switch",
+  "version": "0.1.0",
+  "description": "Universal hot-swappable DAL — SQLite in dev, PostgreSQL in prod, same fluent API",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/database/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/database/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly",
+    "docs": "typedoc",
+    "docs:serve": "tsx scripts/serve-docs.ts",
+    "db:engine-swap": "tsx scripts/db-engine-swap.ts",
+    "smoke": "tsx scripts/smoke-test.ts",
+    "swap-test": "tsx scripts/swap-test.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
+    "dev": "tsx watch src/database/index.ts"
+  },
+  "keywords": [
+    "database",
+    "sqlite",
+    "postgresql",
+    "drizzle",
+    "dal",
+    "hot-swap"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.40.0",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.11.10",
+    "drizzle-kit": "^0.30.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.9",
+    "typedoc": "^0.28.0",
+    "typescript": "^5.9.3"
+  }
+}

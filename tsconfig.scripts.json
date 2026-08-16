@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // scripts run through tsx & never land in dist => no rootDir/emit constraints
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["scripts/**/*"]
+}

@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "critical-thinking-logical-reasoning": {
+      "source": "sammcj/agentic-coding",
+      "sourceType": "github",
+      "skillPath": "Skills/critical-thinking-logical-reasoning/SKILL.md",
+      "computedHash": "6aaa421d1d8a091d8064e7e67c8008aaebf50fe45d2969d8d1317692dc1e57b7"
+    },
+    "drizzle": {
+      "source": "bobmatnyc/claude-mpm-skills",
+      "sourceType": "github",
+      "skillPath": "toolchains/typescript/data/drizzle/SKILL.md",
+      "computedHash": "1833b9288692060090de3e8ca1e772b5e3bbf928c9d44a20bb4d5b6766b019f2"
+    },
+    "drizzle-postgres": {
+      "source": "pedronauck/skills",
+      "sourceType": "github",
+      "skillPath": "skills/community/drizzle-postgres/SKILL.md",
+      "computedHash": "7fe88f283275ac4846dd264493a88f78f7886014ae6e51c2dc351ec121b480bf"
+    },
+    "grill-with-docs": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/grill-with-docs/SKILL.md",
+      "computedHash": "9c460cbd94fd3c63cdef967dbdb6e66ca687103cdc380cd37834e4d10b738f78"
+    },
+    "grilling": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grilling/SKILL.md",
+      "computedHash": "4ebdd12fe61ff3abf20cff6683740e2b9b3739454be0a3f4a928a1c4d07d6b34"
+    },
+    "sequential-thinking": {
+      "source": "mrgoonie/claudekit-skills",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/sequential-thinking/SKILL.md",
+      "computedHash": "2d772aca1eab9aa266fb1ab50455febb571fb2a409ad6be90302a345da40a880"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/database/index.ts"],
+  "out": "docs",
+  "name": "sql-switch",
+  "includeVersion": true,
+  "searchInComments": true,
+  "categorizeByGroup": true,
+  "sort": ["source-order"],
+  "readme": "README.md",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "plugin": []
+}
