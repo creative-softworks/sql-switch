@@ -1,0 +1,22 @@
+# Throwaway Postgres for red-teaming sql-switch.
+# `docker compose up -d` => ephemeral DB, data lives in tmpfs so it's wiped on every
+# restart. Never put anything you care about here; the red-team agent is meant to trash it.
+#
+#   export DATABASE_URL='postgres://postgres:redteam@localhost:5432/swaptest_playground'
+#
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: redteam
+      POSTGRES_DB: swaptest_playground
+    ports:
+      - "5432:5432"
+    tmpfs:
+      # in-memory data dir => nothing persists, teardown is just `docker compose down`
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
