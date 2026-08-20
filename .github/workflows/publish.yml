@@ -1,0 +1,61 @@
+name: Publish
+
+# fires when you push a version tag (git tag v0.2.0 && git push origin v0.2.0), or by hand from the
+# Actions tab. the actual publish is gated on the same typecheck/test/smoke/build a PR ran (via the
+# package.json prepublishOnly hook), so a tag can't ship something that wouldn't have merged.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# stop two tag pushes racing to publish the same version
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # OIDC => npm trusted publishing + provenance, so no long lived NPM_TOKEN has to live in secrets
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # a tag that doesn't match package.json is almost always a slip => cheaper to stop here than to
+      # unpublish. only runs for a real tag push, a manual workflow_dispatch run has no tag to check.
+      - name: Tag must match package.json version
+        if: github.ref_type == 'tag'
+        run: |
+          pkg="v$(node -p "require('./package.json').version")"
+          tag="${GITHUB_REF_NAME}"
+          echo "package.json=$pkg tag=$tag"
+          if [ "$pkg" != "$tag" ]; then
+            echo "::error::tag $tag does not match package.json version $pkg"
+            exit 1
+          fi
+
+      # npm (not pnpm) does the OIDC handshake for trusted publishing, and it needs a recent npm.
+      # prepublishOnly reruns typecheck/test/smoke/build first, and publishConfig.provenance is on =>
+      # the id-token: write permission above is what lets the provenance attestation get signed.
+      - name: Publish to npm
+        run: |
+          npm install -g npm@latest
+          npm publish --access public
