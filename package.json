@@ -60,11 +60,11 @@
     "provenance": true
   },
   "dependencies": {
-    "drizzle-orm": "^0.40.0"
+    "drizzle-orm": "^0.45.2"
   },
   "peerDependencies": {
     "better-sqlite3": "^13.0.3",
-    "pg": "^8.13.0"
+    "pg": "^8.23.0"
   },
   "peerDependenciesMeta": {
     "better-sqlite3": {
@@ -77,12 +77,12 @@
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.2.0",
-    "@types/pg": "^8.11.10",
+    "@types/pg": "^8.23.1",
     "better-sqlite3": "^13.0.3",
-    "drizzle-kit": "^0.30.0",
-    "pg": "^8.13.0",
+    "drizzle-kit": "^0.31.10",
+    "pg": "^8.23.0",
     "tsup": "^8.5.1",
-    "tsx": "^4.23.9",
+    "tsx": "^4.23.12",
     "typedoc": "^0.28.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"
