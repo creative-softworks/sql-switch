@@ -112,9 +112,25 @@ const MISSING_CODES = new Set(['42P01', '3F000']);
 
 /** whatever came back may not be an Error at all => only a string `code` counts */
 function errcode(err: unknown): string | undefined {
-  if (typeof err !== 'object' || err === null) return undefined;
-  const code = (err as { code?: unknown }).code;
-  return typeof code === 'string' ? code : undefined;
+  // drizzle 0.45+ wraps a driver error in DrizzleQueryError & hangs the real pg error off `.cause`,
+  // so the sqlstate we need (42P01, 40001, 08006, …) is a hop or two down, not on the top object.
+  // walk the cause chain (bounded, a self-referential cause shouldn't spin) & take the first code.
+  for (let cur: unknown = err, hops = 0; typeof cur === 'object' && cur !== null && hops < 8; hops++) {
+    const code = (cur as { code?: unknown }).code;
+    if (typeof code === 'string') return code;
+    cur = (cur as { cause?: unknown }).cause;
+  }
+  return undefined;
+}
+
+/** every message down the `.cause` chain, joined => the transient hint may be on the wrapped error */
+function errmessages(err: unknown): string {
+  const parts: string[] = [];
+  for (let cur: unknown = err, hops = 0; cur != null && hops < 8; hops++) {
+    if (cur instanceof Error && cur.message) parts.push(cur.message);
+    cur = (cur as { cause?: unknown }).cause;
+  }
+  return parts.join(' | ');
 }
 
 /**
@@ -129,7 +145,7 @@ export function isTransient(err: unknown): boolean {
   const code = errcode(err);
   if (code !== undefined) return TRANSIENT_CODES.has(code);
 
-  const message = err instanceof Error ? err.message : '';
+  const message = errmessages(err);
   return TRANSIENT_MESSAGES.some((hint) => message.includes(hint));
 }
 

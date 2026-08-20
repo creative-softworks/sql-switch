@@ -70,6 +70,21 @@ describe('transient error classification', () => {
     expect(isMissingRelation(pgerror('08006'))).toBe(false);
     expect(isMissingRelation(null)).toBe(false);
   });
+
+  it('sees through a drizzle-wrapped error to the real sqlstate on `.cause`', () => {
+    // drizzle 0.45+ throws a DrizzleQueryError with no `code` of its own & the real pg error on
+    // `.cause` => classify on the top object alone and every retry & self-heal quietly stops working
+    const wrap = (cause: unknown) => Object.assign(new Error('Failed query: ...'), { cause });
+
+    expect(isMissingRelation(wrap(pgerror('42P01')))).toBe(true);
+    expect(isTransient(wrap(pgerror('40001')))).toBe(true);
+    // a hop deeper (wrapper -> wrapper -> pg error) still resolves
+    expect(isMissingRelation(wrap(wrap(pgerror('3F000'))))).toBe(true);
+    // message-only transients survive the wrap too (dropped socket, no code anywhere)
+    expect(isTransient(wrap(new Error('Connection terminated unexpectedly')))).toBe(true);
+    // and a wrapped non-transient is still left alone
+    expect(isTransient(wrap(pgerror('23505')))).toBe(false);
+  });
 });
 
 describe('bounded jittered retry', () => {
