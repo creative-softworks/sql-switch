@@ -12,8 +12,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # SQLite path + every bit of pure logic, across all supported Node versions. no database
+  # here => the postgres backed vitest files self-skip without DATABASE_URL, so the whole
+  # matrix runs concurrently without fighting over one shared `swaptest` schema
   test:
     runs-on: ubuntu-latest
+    strategy:
+      # one failing Node version shouldn't cancel the others => easier to see if it's version specific
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24]
 
     steps:
       - name: Checkout
@@ -21,6 +29,41 @@ jobs:
 
       # pnpm version is pinned via package.json "packageManager", so action-setup,
       # corepack & local dev all agree. bumping it is a deliberate one-line change.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Build (dual CJS/ESM + d.ts)
+        run: pnpm run build
+
+      # postgres files skip themselves with no DATABASE_URL => this is the SQLite + logic pass
+      - name: Unit tests (Vitest)
+        run: pnpm run test
+
+      - name: Smoke test (SQLite, no DB needed)
+        run: pnpm run smoke
+
+  # TSDoc has to stay warning clean (typedoc.json treatWarningsAsErrors) => catch a broken
+  # {@link} or an undocumented public symbol here, on the PR, not after it merges & the Pages
+  # deploy (docs.yml) is the first thing to notice
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
@@ -33,19 +76,35 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm run typecheck
+      - name: Generate docs (fails on any TypeDoc warning)
+        run: pnpm run docs
 
-      - name: Build (dual CJS/ESM + d.ts)
-        run: pnpm run build
+  # the postgres backed tests all hit one shared neon database, so they run in a single job on
+  # one Node version => no two jobs create & drop the same `swaptest*` schema at the same time.
+  # takes the url from a repo secret & self-skips (exit 0 / skipIf) when it's empty, so fork PRs
+  # without the secret stay green instead of hard failing
+  postgres:
+    runs-on: ubuntu-latest
 
-      - name: Smoke test (SQLite, no DB needed)
-        run: pnpm run smoke
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # takes the connection url straight from the repo secret. swap-test creates &
-      # drops its own `swaptest` schema, and self-skips (exit 0) if the secret is
-      # empty, so fork PRs without the secret stay green instead of hard failing
-      - name: Engine swap test (Postgres)
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Integration tests (Vitest postgres files + engine swap, real database)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pnpm run swap-test
+        run: |
+          pnpm run test
+          pnpm run swap-test

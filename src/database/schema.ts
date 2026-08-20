@@ -19,7 +19,7 @@ import { sqliteTable, text as sqliteText } from 'drizzle-orm/sqlite-core';
  * Build a Drizzle SQLite table definition for a given table name.
  * `value` is stored as `JSON.stringify`'d TEXT since SQLite has no native JSON column.
  *
- * @param tableName - Table name. Must match `^[a-zA-Z0-9-]+$`.
+ * @param tableName - Table name. Must match `^[a-zA-Z0-9_-]+$`.
  */
 export function buildSqliteTable(tableName: string) {
   return sqliteTable(tableName, {
@@ -33,7 +33,7 @@ export function buildSqliteTable(tableName: string) {
  * Build a Drizzle Postgres table inside a named logical schema.
  * `value` uses `JSONB` for efficient binary storage & GIN indexing support.
  *
- * @param schemaName - Postgres logical schema (e.g. `antinuke`). Must match `^[a-zA-Z0-9-]+$`.
+ * @param schemaName - Postgres logical schema (e.g. `antinuke`). Must match `^[a-zA-Z0-9_-]+$`.
  * @param tableName  - Table name inside that schema (e.g. `settings`).
  */
 export function buildPgTable(schemaName: string, tableName: string) {

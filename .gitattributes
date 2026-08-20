@@ -1,0 +1,36 @@
+# Normalize line endings: treat everything as text and check out with LF.
+* text=auto eol=lf
+
+# Explicit text types (kept LF; helps tooling that ignores text=auto).
+*.ts       text eol=lf
+*.js       text eol=lf
+*.mjs      text eol=lf
+*.cjs      text eol=lf
+*.json     text eol=lf
+*.md       text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.sql      text eol=lf
+
+# Shell scripts must stay LF regardless of platform.
+*.sh       text eol=lf
+
+# Lock files and other generated artifacts: keep out of diffs and mark as
+# generated so GitHub collapses them and excludes them from language stats.
+pnpm-lock.yaml    linguist-generated=true -diff
+package-lock.json linguist-generated=true -diff
+
+# Binary types (never normalize, never diff as text).
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.webp     binary
+*.pdf      binary
+*.zip      binary
+*.gz       binary
+*.woff     binary
+*.woff2    binary
+*.db       binary
+*.sqlite   binary

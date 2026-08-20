@@ -6,5 +6,6 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": ["scripts/**/*"]
+  // everything outside src/ that still has to typecheck => scripts, the vitest suite & its config
+  "include": ["scripts/**/*", "test/**/*", "vitest.config.ts"]
 }

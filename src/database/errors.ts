@@ -27,13 +27,13 @@ export class DatabaseUnavailableError extends Error {
 }
 
 /**
- * Thrown when a schema or table name fails the `^[a-zA-Z0-9-]+$` constraint.
+ * Thrown when a schema or table name fails the `^[a-zA-Z0-9_-]+$` constraint.
  * Spaces & special characters are rejected to keep file names & Postgres schema names safe.
  */
 export class InvalidNameError extends Error {
   readonly code = 'INVALID_NAME' as const;
   constructor(kind: 'schema' | 'table', name: string) {
-    super(`invalid ${kind} name "${name}" — only letters, numbers & hyphens allowed`);
+    super(`invalid ${kind} name "${name}" — only letters, numbers, hyphens & underscores allowed`);
     this.name = 'InvalidNameError';
   }
 }
@@ -44,8 +44,9 @@ export class InvalidNameError extends Error {
  */
 export class ConfigurationError extends Error {
   readonly code = 'CONFIGURATION_ERROR' as const;
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    // forward `cause` when given => a wrapped module-not-found keeps its original stack for debugging
+    super(message, options);
     this.name = 'ConfigurationError';
   }
 }
@@ -58,5 +59,35 @@ export class NotConnectedError extends Error {
   constructor() {
     super('call db.connect() before performing any operations');
     this.name = 'NotConnectedError';
+  }
+}
+
+/**
+ * Thrown when a value (or a key) can't be stored the same way by both engines.
+ *
+ * Covers the payloads `JSON.stringify` is happy to mangle — `undefined`, `NaN`, `Infinity` — plus
+ * NUL (`\u0000`), which SQLite keeps as TEXT and Postgres JSONB rejects outright. Also the older
+ * two: circular references & BigInt.
+ *
+ * @remarks
+ * Extends `TypeError` on purpose => `set()` has always thrown a `TypeError` for a value it can't
+ * serialize, so anything catching that keeps working, and new code gets `err.code` &
+ * `instanceof InvalidValueError` to branch on.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await db.schema('economy').table('balances').key(userId).set({ coins: total });
+ * } catch (err) {
+ *   // total came out NaN => the write was refused instead of storing null
+ *   if (err instanceof InvalidValueError) logger.warn(err.message);
+ * }
+ * ```
+ */
+export class InvalidValueError extends TypeError {
+  readonly code = 'INVALID_VALUE' as const;
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidValueError';
   }
 }

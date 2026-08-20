@@ -1,0 +1,54 @@
+node_modules/
+dist/
+docs/
+data/
+
+# SQLite files
+*.db
+*.db-shm
+*.db-wal
+*.db.tmp
+
+# env
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+
+# test coverage
+coverage/
+
+# cache
+.cache/
+
+# graphify scratch index (the committed graph lives in .graphify/)
+graphify-out/
+.graphify/
+.graphify
+# Claude Code machine-local state, transcripts, backups, skills & per-machine trust => never commit
+.claude-data/
+.claude/
+skills-lock.json
+CLAUDE.md
+
+# reference material & scratch checkouts, not part of the library
+quick.db/
+
+# replit / harness runtime dirs
+.replit
+.replitignore
+.config
+.agent
+.agents/
+.local/

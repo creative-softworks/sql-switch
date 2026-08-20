@@ -18,8 +18,13 @@
  * - `--keep`            upward only: keep local `.db` files instead of deleting them
  * - `--yes`             auto-answer Y to every overwrite prompt (non-interactive/CI)
  *
- * Both directions validate every schema & table name against `^[a-zA-Z0-9-]+$` before
- * it reaches a file path or a SQL identifier, and prompt before overwriting existing data.
+ * Both directions only touch schema & table names matching `^[a-zA-Z0-9_-]+$` (checked before a
+ * name reaches a file path or a SQL identifier) and prompt before overwriting existing data.
+ * Anything else in the same directory or database is listed as skipped & left exactly as it was =>
+ * pointing this at a database shared with another app is safe, it just won't move that app's data.
+ *
+ * `Ctrl-C`/`SIGTERM` stops at the next table boundary rather than mid table, leaves a resume
+ * journal in the data dir & exits non zero => rerun the same command to finish the migration.
  */
 
 import readline from 'node:readline';
@@ -114,6 +119,19 @@ async function main(): Promise<void> {
     `[engine-swap] ${result.totalRows} row(s) across ${result.tables.length} table(s)` +
       `${result.skipped > 0 ? `, ${result.skipped} target(s) skipped` : ''}`,
   );
+
+  if (result.skippedNames.length > 0) {
+    console.log(
+      `[engine-swap] left alone (not addressable by this DAL): ${result.skippedNames.join(', ')}`,
+    );
+  }
+
+  // non zero on an interrupted run => a CI step or a shell `&&` chain shouldn't read a partial
+  // migration as a finished one
+  if (result.aborted) {
+    console.error('[engine-swap] stopped early => rerun the same command to resume');
+    process.exitCode = 1;
+  }
 }
 
 main().catch((err) => {

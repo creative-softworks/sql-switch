@@ -11,10 +11,10 @@ import { InvalidNameError } from './errors.js';
 
 /**
  * Allowed characters for schema & table names.
- * Letters, numbers & hyphens only => safe as both a file name & a Postgres identifier.
+ * Letters, numbers, hyphens & underscores only => safe as both a file name & a Postgres identifier.
  * No spaces, no dots, no quotes, nothing that could break out of an identifier.
  */
-export const NAME_PATTERN = /^[a-zA-Z0-9-]+$/;
+export const NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
 /**
  * Validate a schema or table name against {@link NAME_PATTERN}.

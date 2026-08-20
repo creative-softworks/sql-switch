@@ -13,7 +13,7 @@
 
 import fs from 'node:fs';
 import { createDAL, InvalidNameError } from '../src/database/index.js';
-import { WriteCollector } from '../src/database/utils/collector.js';
+import { WriteCollector, resolveCollectorConfig } from '../src/database/utils/collector.js';
 import type { DatabaseDriver } from '../src/database/types.js';
 
 const TEST_DIR = './data/smoke-test';
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
   check('delete never goes through the collector', db.pendingWrites === 0, db.pendingWrites);
 
   console.log('\n[8] name validation');
-  const bad = ['has space', 'has.dot', 'has_underscore', 'drop;table', ''];
+  const bad = ['has space', 'has.dot', 'drop;table', ''];
   for (const name of bad) {
     let threw = false;
     try {
@@ -93,11 +93,12 @@ async function main(): Promise<void> {
   }
   let validOk = true;
   try {
-    db.schema('anti-nuke2').table('settings-v2');
+    // underscores are addressable now (#13) alongside letters, numbers & hyphens
+    db.schema('anti_nuke-2').table('settings_v2');
   } catch {
     validOk = false;
   }
-  check('accepts letters/numbers/hyphens', validOk);
+  check('accepts letters/numbers/hyphens/underscores', validOk);
 
   console.log('\n[9] graceful close flushes pending writes');
   await db.schema('economy').table('balances').key('user_9').set({ coins: 99 });
@@ -151,6 +152,9 @@ async function main(): Promise<void> {
     async get() {
       return null;
     },
+    async exists() {
+      return false;
+    },
     async set() {},
     async batchSet() {
       attempts++;
@@ -158,11 +162,16 @@ async function main(): Promise<void> {
       if (attempts === 1) throw new Error('simulated outage');
     },
     async delete() {},
+    // eslint not wired up, but keep this honest => scan yields nothing, count is zero
+    async *scan() {},
+    async count() {
+      return 0;
+    },
     async close() {},
   };
 
   // long interval => only the manual flush() calls below actually run
-  const collector = new WriteCollector(flaky, { enabled: true, time: 5000 });
+  const collector = new WriteCollector(flaky, resolveCollectorConfig({ enabled: true, time: 5000 }));
   collector.queue('antinuke', 'settings', 'guild_x', { strict: true });
   await collector.flush();
   check('failed group went back in the buffer', collector.pendingCount === 1, collector.pendingCount);

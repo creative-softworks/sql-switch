@@ -11,5 +11,6 @@
   "excludePrivate": true,
   "excludeInternal": true,
   "excludeExternals": true,
+  "treatWarningsAsErrors": true,
   "plugin": []
 }

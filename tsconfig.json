@@ -9,6 +9,9 @@
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
+    // keep @internal symbols (the driver contract, internal helpers) out of the shipped .d.ts =>
+    // the public surface is only what index.ts re-exports (A1)
+    "stripInternal": true,
     // embeds source content inside .js.map & .d.ts.map files as a fallback =>
     // "Go to Definition" still works even if the src/ path can't be resolved
     "inlineSources": true,
