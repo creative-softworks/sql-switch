@@ -76,7 +76,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
-    "@types/node": "^22.15.0",
+    "@types/node": "^26.2.0",
     "@types/pg": "^8.11.10",
     "better-sqlite3": "^13.0.3",
     "drizzle-kit": "^0.30.0",
