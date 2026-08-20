@@ -250,4 +250,4 @@ npm run docs:serve   # serve /docs on http://localhost:3000
 
 ## Requirements
 
-- Node.js >= 18.0.0
+- Node.js >= 22.0.0 (tested on the active LTS / current lines, 22 and 24)

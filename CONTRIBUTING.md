@@ -10,7 +10,7 @@ cd sql-switch
 pnpm install
 ```
 
-Package manager is pnpm (10.26.1). Node >=18, though the dev runtime is Node 24.
+Package manager is pnpm (10.26.1). Node >=22 (18 and 20 are past EOL), the dev runtime is Node 24.
 
 ## The gates
 

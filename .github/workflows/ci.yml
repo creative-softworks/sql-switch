@@ -21,7 +21,10 @@ jobs:
       # one failing Node version shouldn't cancel the others => easier to see if it's version specific
       fail-fast: false
       matrix:
-        node: [18, 20, 22, 24]
+        # 22 & 24 are the live LTS/current lines. 18 & 20 are both past Node's EOL now, and
+        # vitest 4's rolldown bundler imports `styleText` from node:util (node 20.12+ only), so
+        # the runner can't even boot on 18 => testing them was permanently red, not real coverage.
+        node: [22, 24]
 
     steps:
       - name: Checkout
