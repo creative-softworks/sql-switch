@@ -1,6 +1,6 @@
 {
   "name": "@creative-softworks/sql-switch",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "description": "Branded alias of sql-switch — a universal hot-swappable DAL (SQLite in dev, PostgreSQL in prod, same fluent API). Re-exports the sql-switch package unchanged.",
   "type": "module",
   "exports": {
@@ -46,6 +46,6 @@
     "provenance": true
   },
   "dependencies": {
-    "sql-switch": "0.0.0"
+    "sql-switch": "0.2.0"
   }
 }
