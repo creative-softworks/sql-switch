@@ -217,11 +217,25 @@ export class KeyProxy {
    * the delete can't come back on the next flush.
    */
   delete(): WriteOperation<void> {
-    const run = async (): Promise<void> => {
+    // start now, not on await => a bare `delete()` has to land the same way a bare `set()` does. it
+    // used to only run inside the WriteOperation callbacks, so a delete that was never awaited (or
+    // forced) silently vanished while a queued set() on the same key survived (C1). dropbuffered()
+    // first => evict() runs synchronously right here, so a set() queued before this is gone before
+    // the next flush can pick it up
+    const started = (async (): Promise<void> => {
       await this.dropbuffered();
       return this.driver.delete(this.ctx.schema, this.ctx.table, this.key);
-    };
-    return new WriteOperation<void>(run, run);
+    })();
+    // fire and forget must not crash the process as an unhandled rejection => an await/.force() still
+    // re-observes the real error off `started`, the same guard set() uses
+    void started.catch(() => undefined);
+
+    // deletes never route through the collector => queued & immediate are the one eager write. force()
+    // is accepted for API symmetry (see remarks), there's just nothing extra to bypass
+    return new WriteOperation<void>(
+      () => started,
+      () => started,
+    );
   }
 
   /**

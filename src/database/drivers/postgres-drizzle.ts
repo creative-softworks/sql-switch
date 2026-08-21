@@ -1,13 +1,19 @@
 /**
  * @packageDocumentation
- * PostgreSQL driver — implements {@link DatabaseDriver} using node-postgres (pg) + drizzle-orm.
+ * PostgreSQL driver — implements {@link DatabaseDriver} using node-postgres (pg).
  *
  * All schemas share a single `pg.Pool`. Schema/table isolation is handled at the SQL level
  * via Postgres logical schemas (e.g. `antinuke.settings`).
  *
  * @remarks
- * **PgBouncer compatibility**: drizzle-orm/node-postgres uses simple/unnamed queries by
- * default, which is exactly what PgBouncer transaction mode requires. Named prepared
+ * **One SQL path**: every op is a raw parameterized `pool.query` (or a transaction of them for a
+ * flush group). `get`/`set`/`delete` used to go through drizzle's query builder & its `jsonb` column
+ * mapper, which double-parsed reads (NEW-2) and turned `set(null)` into a `NOT NULL` violation
+ * (NEW-7) => they now bind values as `$n::jsonb` the same way the scans & {@link buildBulkUpsert}
+ * always did, so a value round trips identically no matter which method wrote or read it.
+ *
+ * **PgBouncer compatibility**: raw parameterized queries go over pg's extended protocol with
+ * *unnamed* statements, which is exactly what PgBouncer transaction mode requires. Named prepared
  * statements corrupt PgBouncer pools — never call `pool.prepare()` here.
  *
  * Pool `max` defaults to 5 — keep it low when running behind PgBouncer in transaction
@@ -23,9 +29,6 @@
  */
 
 import pg from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq } from 'drizzle-orm';
-import { buildPgTable } from '../schema.js';
 import { ConfigurationError } from '../errors.js';
 import type { DatabaseDriver, PostgresConfig, ScanOptions, StoredEntry } from '../types.js';
 
@@ -338,7 +341,6 @@ export function buildBulkUpsert(
 
 export class PostgresDriver implements DatabaseDriver {
   private pool: pg.Pool;
-  private db: ReturnType<typeof drizzle>;
   // tracks which schema:table pairs have had CREATE SCHEMA/TABLE IF NOT EXISTS run
   private ready = new Set<string>();
   // in-flight ensure calls, keyed the same way => concurrent callers share one round trip
@@ -359,8 +361,6 @@ export class PostgresDriver implements DatabaseDriver {
     this.pool.on('error', (err) => {
       console.error('[sql-switch] idle postgres client error:', err);
     });
-
-    this.db = drizzle(this.pool);
   }
 
   // CREATE SCHEMA + TABLE on first touch, cached so subsequent calls are free
@@ -450,18 +450,28 @@ export class PostgresDriver implements DatabaseDriver {
     }
   }
 
-  /** @inheritdoc */
+  /**
+   * @remarks
+   * Raw `pool.query` on purpose => the pg driver already hands JSONB back as a parsed JS value, so we
+   * return `row.value` straight. going through drizzle's `jsonb` column ran a SECOND `JSON.parse` on
+   * top of that, which turned a stored string like a snowflake id `"123456789012345678"` into a
+   * precision lost number & made `get()` disagree with `entries()`/the scans (already raw pool) for
+   * the very same row (NEW-2). same single path as {@link buildBulkUpsert} now => they agree. key is
+   * bound, never spliced in.
+   *
+   * @inheritdoc
+   */
   async get(schema: string, table: string, key: string): Promise<unknown> {
-    const tbl = buildPgTable(schema, table);
-
-    const rows = await this.run(schema, table, () =>
-      this.db.select().from(tbl).where(eq(tbl.id, key)).limit(1),
-    );
-
-    const row = rows[0];
-    if (!row) return null;
-    // JSONB is already a parsed JS object from the pg driver — no JSON.parse needed
-    return row.value;
+    return this.run(schema, table, async () => {
+      const res = await this.pool.query<{ value: unknown }>(
+        `SELECT value FROM "${schema}"."${table}" WHERE id = $1 LIMIT 1`,
+        [key],
+      );
+      const row = res.rows[0];
+      // a stored JSONB `null` comes back as JS null too => same as "no row", exists() is the
+      // disambiguator (see its remarks), matching how the scans read the column
+      return row ? row.value : null;
+    });
   }
 
   /**
@@ -484,15 +494,24 @@ export class PostgresDriver implements DatabaseDriver {
     });
   }
 
-  /** @inheritdoc */
+  /**
+   * @remarks
+   * Raw parameterized upsert, the single row form of {@link buildBulkUpsert} => `$2::jsonb` fed
+   * `JSON.stringify(value)` stores the value as jsonb exactly the way the batch path & the scans read
+   * it back. drizzle's `jsonb` column mapped a JS `null` onto a SQL `NULL`, which the `value` column
+   * rejects (`NOT NULL`) & made `set(null)` behave differently depending on which path wrote it
+   * (NEW-7). one path now => `set(null)` stores a jsonb `null` on every engine & `has()` still sees
+   * the row. key & value are bound, never spliced in.
+   *
+   * @inheritdoc
+   */
   async set(schema: string, table: string, key: string, value: unknown): Promise<void> {
-    const tbl = buildPgTable(schema, table);
-
     await this.run(schema, table, async () => {
-      await this.db
-        .insert(tbl)
-        .values({ id: key, value })
-        .onConflictDoUpdate({ target: tbl.id, set: { value } });
+      await this.pool.query(
+        `INSERT INTO "${schema}"."${table}" (id, value) VALUES ($1, $2::jsonb)` +
+          ` ON CONFLICT (id) DO UPDATE SET value = EXCLUDED.value`,
+        [key, JSON.stringify(value)],
+      );
     });
   }
 
@@ -557,10 +576,9 @@ export class PostgresDriver implements DatabaseDriver {
 
   /** @inheritdoc */
   async delete(schema: string, table: string, key: string): Promise<void> {
-    const tbl = buildPgTable(schema, table);
-
+    // raw pool, same single path as get/set => key is bound, never spliced in
     await this.run(schema, table, async () => {
-      await this.db.delete(tbl).where(eq(tbl.id, key));
+      await this.pool.query(`DELETE FROM "${schema}"."${table}" WHERE id = $1`, [key]);
     });
   }
 

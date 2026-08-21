@@ -8,6 +8,45 @@ While it's pre-1.0, minor versions may carry breaking changes.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-21
+
+Tier 1 correctness fixes (packaging + Postgres value integrity + write durability).
+No public API changes and no breaking changes — safe as a patch release.
+
+### Fixed
+
+- **`import 'sql-switch'` no longer drags in both drivers** (NEW-13): with tsup
+  `splitting: false`, esbuild inlined each lazily-imported driver into the entry
+  chunk and hoisted its top-level `import pg` / `import better-sqlite3`, so a
+  SQLite-only (or Postgres-only) install crashed on import with "Cannot find
+  module …". `splitting: true` keeps the drivers as their own chunks, so a driver
+  is only loaded once its engine is selected — restoring the optional-peer-dep
+  invariant. Both the ESM and CJS entrypoints are covered by a build-output guard.
+- **Postgres `get()` no longer corrupts JSON-looking strings** (NEW-2): `get()`
+  read through drizzle's `jsonb` column, which ran a second `JSON.parse` on a
+  value the pg driver had already parsed. A stored string like a snowflake id
+  (`"123456789012345678"`) came back as a precision-lost number, and `get()`
+  disagreed with `entries()`/scans on the same row. `get()` now reads through the
+  raw pool the way the scans always did.
+- **Postgres `set(null)` is consistent across paths** (NEW-7): drizzle mapped a
+  JS `null` onto a SQL `NULL`, which the `NOT NULL` `value` column rejected, so
+  `set(null)` behaved differently on the immediate versus the buffered path. `set`
+  now binds `$n::jsonb` with `JSON.stringify`, storing a jsonb `null` on every
+  path — `get()` reads it back as `null` and `has()` still reports the row.
+- **An un-awaited `delete()` now lands** (C1): `delete()` only ran its work inside
+  the `WriteOperation` callbacks, so a fire-and-forget `delete()` (no `await`, no
+  `.force()`) silently did nothing while a fire-and-forget `set()` committed. It
+  now executes eagerly at call time, matching `set()`; `await`/`.force()` only
+  decide whether you wait for it.
+
+### Changed
+
+- Postgres driver `get`/`set`/`delete` now issue raw parameterized `pool.query`
+  calls (the same single `$n::jsonb` path as the bulk upsert and the scans)
+  instead of the drizzle query builder, so every read and write path agrees
+  byte-for-byte. drizzle-orm is still used for the SQLite driver and schema
+  builders, so it remains a dependency.
+
 ## [1.0.0] - 2026-08-21
 
 First stable release. The public API (the fluent chain, `createDAL`/`engineSwap`,
@@ -65,7 +104,8 @@ Initial pre-release of the universal SQLite/PostgreSQL DAL.
   crashing, then recovers.
 - Bidirectional engine swap => migrate data SQLite files <=> PostgreSQL schemas.
 
-[Unreleased]: https://github.com/creative-softworks/sql-switch/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/creative-softworks/sql-switch/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/creative-softworks/sql-switch/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/creative-softworks/sql-switch/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/creative-softworks/sql-switch/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/creative-softworks/sql-switch/releases/tag/v0.1.0
