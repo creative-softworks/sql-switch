@@ -34,7 +34,11 @@ export interface RunOptions {
  * tsx is loaded through `--import`, not run as the `tsx` CLI => the CLI re-spawns node as a
  * grandchild, so a signal would land on the wrapper & never reach the process holding the buffer.
  */
-export function runfixture(file: string, args: string[], opts: RunOptions = {}): Promise<ChildExit> {
+export function runfixture(
+  file: string,
+  args: string[],
+  opts: RunOptions = {},
+): Promise<ChildExit> {
   const fixture = path.join(import.meta.dirname, '..', 'fixtures', file);
   const child = spawn(process.execPath, ['--import', 'tsx', fixture, ...args], {
     stdio: ['ignore', 'pipe', 'pipe'],

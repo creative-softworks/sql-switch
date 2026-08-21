@@ -44,7 +44,11 @@ async function main(): Promise<void> {
 
   await db.schema('antinuke').table('settings').key('guild_1').set({ strict: true }).force();
   const forced = await db.schema('antinuke').table('settings').key('guild_1').get();
-  check('.force() write is readable immediately', JSON.stringify(forced) === '{"strict":true}', forced);
+  check(
+    '.force() write is readable immediately',
+    JSON.stringify(forced) === '{"strict":true}',
+    forced,
+  );
 
   console.log('\n[2] queued write goes through the collector');
   await db.schema('antinuke').table('settings').key('guild_2').set({ strict: false });
@@ -54,7 +58,11 @@ async function main(): Promise<void> {
   await db.schema('economy').table('balances').key('user_1').set({ coins: 1 });
   await db.schema('economy').table('balances').key('user_1').set({ coins: 2 });
   await db.schema('economy').table('balances').key('user_1').set({ coins: 3 });
-  check('3 writes to one key => 1 buffered entry (+1 from step 2)', db.pendingWrites === 2, db.pendingWrites);
+  check(
+    '3 writes to one key => 1 buffered entry (+1 from step 2)',
+    db.pendingWrites === 2,
+    db.pendingWrites,
+  );
 
   console.log('\n[4] collector flushes on interval');
   await new Promise((r) => setTimeout(r, 600));
@@ -63,11 +71,18 @@ async function main(): Promise<void> {
   const flushed = await db.schema('antinuke').table('settings').key('guild_2').get();
   check('queued value persisted', JSON.stringify(flushed) === '{"strict":false}', flushed);
 
-  const collapsed = await db.schema('economy').table('balances').key('user_1').get<{ coins: number }>();
+  const collapsed = await db
+    .schema('economy')
+    .table('balances')
+    .key('user_1')
+    .get<{ coins: number }>();
   check('collapsed write kept the LAST value', collapsed?.coins === 3, collapsed);
 
   console.log('\n[5] schema isolation => separate .db files');
-  const files = fs.readdirSync(TEST_DIR).filter((f) => f.endsWith('.db')).sort();
+  const files = fs
+    .readdirSync(TEST_DIR)
+    .filter((f) => f.endsWith('.db'))
+    .sort();
   check('one file per schema', files.join(',') === 'antinuke.db,economy.db', files);
 
   console.log('\n[6] missing key returns null');
@@ -106,13 +121,21 @@ async function main(): Promise<void> {
 
   const db2 = createDAL();
   await db2.connect({ db: { mode: 'local', dataDir: TEST_DIR }, collector: { enabled: false } });
-  const survived = await db2.schema('economy').table('balances').key('user_9').get<{ coins: number }>();
+  const survived = await db2
+    .schema('economy')
+    .table('balances')
+    .key('user_9')
+    .get<{ coins: number }>();
   check('pending write survived close()', survived?.coins === 99, survived);
 
   console.log('\n[10] collector disabled => writes go direct');
   await db2.schema('economy').table('balances').key('user_10').set({ coins: 10 });
   check('no buffering when disabled', db2.pendingWrites === 0, db2.pendingWrites);
-  const direct = await db2.schema('economy').table('balances').key('user_10').get<{ coins: number }>();
+  const direct = await db2
+    .schema('economy')
+    .table('balances')
+    .key('user_10')
+    .get<{ coins: number }>();
   check('direct write readable right away', direct?.coins === 10, direct);
 
   await db2.close();
@@ -171,10 +194,17 @@ async function main(): Promise<void> {
   };
 
   // long interval => only the manual flush() calls below actually run
-  const collector = new WriteCollector(flaky, resolveCollectorConfig({ enabled: true, time: 5000 }));
+  const collector = new WriteCollector(
+    flaky,
+    resolveCollectorConfig({ enabled: true, time: 5000 }),
+  );
   collector.queue('antinuke', 'settings', 'guild_x', { strict: true });
   await collector.flush();
-  check('failed group went back in the buffer', collector.pendingCount === 1, collector.pendingCount);
+  check(
+    'failed group went back in the buffer',
+    collector.pendingCount === 1,
+    collector.pendingCount,
+  );
   check('collector did not trip on a single failure', collector.isTripped === false);
 
   await collector.flush();

@@ -250,9 +250,10 @@ describe.skipIf(!url)('postgres resilience against a real database', () => {
 
       // the flush can never get the lock => without a statement timeout this waits forever on a
       // pool slot. 5 of those and the driver is done answering anything
-      failure = await driver
-        .batchSet(schema, 'locked', new Map([['b', { n: 2 }]]))
-        .then(() => null, (err: unknown) => err);
+      failure = await driver.batchSet(schema, 'locked', new Map([['b', { n: 2 }]])).then(
+        () => null,
+        (err: unknown) => err,
+      );
     } finally {
       await blocker.query('ROLLBACK').catch(() => undefined);
       blocker.release();

@@ -50,7 +50,9 @@ function parseArgs(argv: string[]): CliOptions {
 
   if (up === down) {
     // covers both "neither given" & "both given"
-    fail('specify exactly one direction => --up (SQLite to Postgres) or --down (Postgres to SQLite)');
+    fail(
+      'specify exactly one direction => --up (SQLite to Postgres) or --down (Postgres to SQLite)',
+    );
   }
 
   // reads the value after a flag => guards against the flag being last with no value
@@ -102,7 +104,9 @@ async function main(): Promise<void> {
     // interactive prompt per target, exactly like the old inline behaviour
     onConflict: (conflict: SwapConflict) => {
       const target =
-        conflict.kind === 'table' ? `${conflict.schema}.${conflict.table}` : `${conflict.schema}.db`;
+        conflict.kind === 'table'
+          ? `${conflict.schema}.${conflict.table}`
+          : `${conflict.schema}.db`;
       return confirm(
         `[engine-swap] leftover data detected in ${target}. Overwrite with new data?`,
         opts.assumeYes,

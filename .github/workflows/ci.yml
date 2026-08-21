@@ -57,6 +57,31 @@ jobs:
       - name: Smoke test (SQLite, no DB needed)
         run: pnpm run smoke
 
+  # Biome lint + format gate. no DB, no build => the fastest signal on a PR. `biome ci` is the
+  # non-writing CI mode: it fails on any lint error or unformatted file, so a reflow that never ran
+  # locally can't slip in. mirrors `pnpm run check` (prepublishOnly) so local & CI agree
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint + format check (Biome)
+        run: pnpm exec biome ci .
+
   # TSDoc has to stay warning clean (typedoc.json treatWarningsAsErrors) => catch a broken
   # {@link} or an undocumented public symbol here, on the PR, not after it merges & the Pages
   # deploy (docs.yml) is the first thing to notice
@@ -105,9 +130,35 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Integration tests (Vitest postgres files + engine swap, real database)
+      # coverage is generated here, inside the DATABASE_URL job => this is the only run that
+      # exercises the pg runtime paths & the down swap, so its numbers are the truest picture. the
+      # text-summary reporter drops the table straight into the job log. on a fork PR with no
+      # secret the pg tests self-skip, coverage still writes for the SQLite + logic pass
+      - name: Integration tests + coverage (Vitest incl. postgres files, real database)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          pnpm run test
+          pnpm run test:coverage
           pnpm run swap-test
+
+      # surface the totals on the run summary page too, not just buried in the log. reads the
+      # json-summary reporter's output => no extra action, no artifact upload (keeps the workflow
+      # off the deprecated Node 20 upload-artifact). a skipped coverage run just prints a note
+      - name: Coverage summary to run page
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = "coverage/coverage-summary.json";
+            if (!fs.existsSync(p)) { console.log("no coverage summary (run skipped?)"); process.exit(0); }
+            const t = JSON.parse(fs.readFileSync(p, "utf8")).total;
+            const row = (k) => `| ${k} | ${t[k].pct}% | ${t[k].covered}/${t[k].total} |`;
+            const md = [
+              "## Coverage (src/)",
+              "",
+              "| metric | % | covered/total |",
+              "| --- | --- | --- |",
+              row("lines"), row("statements"), row("functions"), row("branches"),
+            ].join("\n");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md + "\n");
+          '

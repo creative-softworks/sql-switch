@@ -120,7 +120,10 @@ async function main(): Promise<void> {
   check('rows really are in postgres', (await countRows(url)) === seeds.length);
   console.log('\n[3] read the migrated data through the cloud driver');
   const cloud = createDAL();
-  await cloud.connect({ db: { mode: 'cloud', connectionString: url }, collector: { enabled: false } });
+  await cloud.connect({
+    db: { mode: 'cloud', connectionString: url },
+    collector: { enabled: false },
+  });
   const snowflake = await cloud
     .schema(SCHEMA)
     .table(TABLE)
@@ -152,7 +155,11 @@ async function main(): Promise<void> {
     .table(TABLE)
     .key('1234567890123456789')
     .get<{ nested: { list: number[] } }>();
-  check('round trip kept the value intact', roundtrip?.nested.list.join(',') === '1,2,3', roundtrip);
+  check(
+    'round trip kept the value intact',
+    roundtrip?.nested.list.join(',') === '1,2,3',
+    roundtrip,
+  );
 
   // chunk boundary rows are where keyset pagination would drop or repeat data
   const boundary = await back.schema(SCHEMA).table(TABLE).key('bulk-499').get<{ i: number }>();
@@ -198,7 +205,11 @@ async function main(): Promise<void> {
   check('write is still buffered', hot.pendingWrites === 1, hot.pendingWrites);
 
   const hotResult = await hot.swapEngine({ direction: 'up', onConflict: 'overwrite' });
-  check('pending write was flushed before the swap', hotResult.totalRows === seeds.length + 1, hotResult.totalRows);
+  check(
+    'pending write was flushed before the swap',
+    hotResult.totalRows === seeds.length + 1,
+    hotResult.totalRows,
+  );
 
   // same db object, now talking to postgres
   const afterSwap = await hot.schema(SCHEMA).table(TABLE).key('guild-4').get<{ hot: boolean }>();
@@ -206,7 +217,9 @@ async function main(): Promise<void> {
   check('collector settings carried over', hot.pendingWrites === 0, hot.pendingWrites);
   await hot.close();
 
-  console.log('\n[7] ES#4 => a foreign-shaped table is skipped, an all-foreign schema hydrates nothing');
+  console.log(
+    '\n[7] ES#4 => a foreign-shaped table is skipped, an all-foreign schema hydrates nothing',
+  );
   {
     const pool = new pg.Pool({ connectionString: url, connectionTimeoutMillis: 10_000 });
     pool.on('error', () => undefined);
@@ -260,16 +273,23 @@ async function main(): Promise<void> {
       es4.skippedNames.includes(`${ES4_FOREIGN}.audit`),
       es4.skippedNames,
     );
+    check('all-foreign schema left no stub .db', !fs.existsSync(`${ES4_DIR}/${ES4_FOREIGN}.db`));
     check(
-      'all-foreign schema left no stub .db',
-      !fs.existsSync(`${ES4_DIR}/${ES4_FOREIGN}.db`),
+      'no leftover temp file for the discarded schema',
+      !fs.existsSync(`${ES4_DIR}/${ES4_FOREIGN}.db.tmp`),
     );
-    check('no leftover temp file for the discarded schema', !fs.existsSync(`${ES4_DIR}/${ES4_FOREIGN}.db.tmp`));
 
     // and the row that did come down reads back through a local DAL
     const es4back = createDAL();
-    await es4back.connect({ db: { mode: 'local', dataDir: ES4_DIR }, collector: { enabled: false } });
-    const mixValue = await es4back.schema(ES4_MIXED).table('settings').key('guild-1').get<{ strict: boolean }>();
+    await es4back.connect({
+      db: { mode: 'local', dataDir: ES4_DIR },
+      collector: { enabled: false },
+    });
+    const mixValue = await es4back
+      .schema(ES4_MIXED)
+      .table('settings')
+      .key('guild-1')
+      .get<{ strict: boolean }>();
     check('mixed-schema value round-tripped', mixValue?.strict === true, mixValue);
     await es4back.close();
   }

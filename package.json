@@ -33,9 +33,16 @@
     "swap-test": "tsx scripts/swap-test.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --write",
+    "format": "biome format --write",
+    "format:check": "biome format",
+    "check": "biome check",
+    "check:fix": "biome check --write",
     "dev": "tsx watch src/database/index.ts",
-    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run smoke && pnpm run build"
+    "prepublishOnly": "pnpm run check && pnpm run typecheck && pnpm run test && pnpm run smoke && pnpm run build"
   },
   "keywords": [
     "database",
@@ -80,9 +87,11 @@
     }
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "^4.1.11",
     "better-sqlite3": "^13.0.3",
     "drizzle-kit": "^0.31.10",
     "pg": "^8.23.0",
@@ -90,6 +99,6 @@
     "tsx": "^4.23.12",
     "typedoc": "^0.28.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }

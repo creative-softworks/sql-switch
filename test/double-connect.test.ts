@@ -103,9 +103,9 @@ describe('double connect', () => {
 
     // the types already demand a connectionString here => that guard exists for JS callers, so the
     // cast is the only way to reach it from a typed test
-    await expect(
-      db.connect({ db: { mode: 'cloud' } } as unknown as DALConfig),
-    ).rejects.toThrow(ConfigurationError);
+    await expect(db.connect({ db: { mode: 'cloud' } } as unknown as DALConfig)).rejects.toThrow(
+      ConfigurationError,
+    );
     // a bad collector interval has to be caught before the old engine is torn down too
     await expect(
       db.connect({ db: { mode: 'local', dataDir: dir }, collector: { time: 0 } }),
@@ -141,7 +141,9 @@ describe('double connect', () => {
       strict: true,
     });
     await db.schema('antinuke').table('settings').key('guild-2').set({ ok: true }).force();
-    expect(await db.schema('antinuke').table('settings').key('guild-2').get()).toEqual({ ok: true });
+    expect(await db.schema('antinuke').table('settings').key('guild-2').get()).toEqual({
+      ok: true,
+    });
   });
 
   it('turns a missing engine peer dep into a ConfigurationError that names the package', async () => {
@@ -153,7 +155,10 @@ describe('double connect', () => {
     // the mocked pg driver import throws ERR_MODULE_NOT_FOUND for 'pg' => connect should translate
     // that into a friendly, actionable error rather than surfacing the raw resolver stack
     const err = await db
-      .connect({ db: { mode: 'cloud', connectionString: 'postgres://ignored' }, collector: NOFLUSH })
+      .connect({
+        db: { mode: 'cloud', connectionString: 'postgres://ignored' },
+        collector: NOFLUSH,
+      })
       .then(() => null)
       .catch((e: unknown) => e);
 
