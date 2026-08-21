@@ -8,6 +8,13 @@ Universal hot-swappable database abstraction layer for Node.js. Run SQLite local
 npm install sql-switch
 ```
 
+Also published under the Creative-Softworks scope if you prefer the branded name — it re-exports
+this package unchanged, so pick whichever reads better to you:
+
+```bash
+npm install @creative-softworks/sql-switch
+```
+
 The database drivers are **optional peer dependencies** — install only the one for the engine you
 run, so a SQLite-only app never pulls in `pg` and its build, and vice versa:
 
