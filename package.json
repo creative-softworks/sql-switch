@@ -1,6 +1,6 @@
 {
   "name": "sql-switch",
-  "version": "0.2.0",
+  "version": "0.0.0",
   "description": "Universal hot-swappable DAL — SQLite in dev, PostgreSQL in prod, same fluent API",
   "type": "module",
   "packageManager": "pnpm@10.26.1",
@@ -49,12 +49,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/revxshafi/sql-switch.git"
+    "url": "git+https://github.com/creative-softworks/sql-switch.git"
   },
   "bugs": {
-    "url": "https://github.com/revxshafi/sql-switch/issues"
+    "url": "https://github.com/creative-softworks/sql-switch/issues"
   },
-  "homepage": "https://github.com/revxshafi/sql-switch#readme",
+  "homepage": "https://github.com/creative-softworks/sql-switch#readme",
   "publishConfig": {
     "access": "public",
     "provenance": true

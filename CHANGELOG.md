@@ -46,6 +46,6 @@ Initial pre-release of the universal SQLite/PostgreSQL DAL.
   crashing, then recovers.
 - Bidirectional engine swap => migrate data SQLite files <=> PostgreSQL schemas.
 
-[Unreleased]: https://github.com/revxshafi/sql-switch/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/revxshafi/sql-switch/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/revxshafi/sql-switch/releases/tag/v0.1.0
+[Unreleased]: https://github.com/creative-softworks/sql-switch/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/creative-softworks/sql-switch/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/creative-softworks/sql-switch/releases/tag/v0.1.0

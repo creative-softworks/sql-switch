@@ -1,0 +1,51 @@
+{
+  "name": "@creative-softworks/sql-switch",
+  "version": "0.0.0",
+  "description": "Branded alias of sql-switch — a universal hot-swappable DAL (SQLite in dev, PostgreSQL in prod, same fluent API). Re-exports the sql-switch package unchanged.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    }
+  },
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "files": [
+    "index.js",
+    "index.cjs",
+    "index.d.ts",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "database",
+    "sqlite",
+    "postgresql",
+    "drizzle",
+    "dal",
+    "hot-swap"
+  ],
+  "author": "Rev Albrecht von Nullpointer <160512015+revxshafi@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/creative-softworks/sql-switch.git",
+    "directory": "scoped"
+  },
+  "bugs": {
+    "url": "https://github.com/creative-softworks/sql-switch/issues"
+  },
+  "homepage": "https://github.com/creative-softworks/sql-switch#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "sql-switch": "0.0.0"
+  }
+}

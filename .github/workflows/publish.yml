@@ -1,8 +1,10 @@
 name: Publish
 
 # fires when you push a version tag (git tag v0.2.0 && git push origin v0.2.0), or by hand from the
-# Actions tab. the actual publish is gated on the same typecheck/test/smoke/build a PR ran (via the
-# package.json prepublishOnly hook), so a tag can't ship something that wouldn't have merged.
+# Actions tab. two packages ship from this one repo => the real code as `sql-switch` (unscoped), and
+# `@creative-softworks/sql-switch` (in scoped/) which just re-exports it. the actual publish is gated
+# on the same typecheck/test/smoke/build a PR ran (package.json prepublishOnly), so a tag can't ship
+# something that wouldn't have merged.
 on:
   push:
     tags:
@@ -19,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # OIDC => npm trusted publishing + provenance, so no long lived NPM_TOKEN has to live in secrets
+      # provenance attestation is signed with this even on token auth => keep it on
       id-token: write
 
     steps:
@@ -34,28 +36,43 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          # writes the ~/.npmrc that NODE_AUTH_TOKEN below fills in, for both publishes
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # a tag that doesn't match package.json is almost always a slip => cheaper to stop here than to
-      # unpublish. only runs for a real tag push, a manual workflow_dispatch run has no tag to check.
-      - name: Tag must match package.json version
+      # a tag that doesn't match is almost always a slip => cheaper to stop here than to unpublish.
+      # both package.json versions have to agree with the tag, and the scoped alias has to pin the
+      # unscoped version it re-exports, otherwise the two packages drift apart. tag push only.
+      - name: Versions must match the tag
         if: github.ref_type == 'tag'
         run: |
-          pkg="v$(node -p "require('./package.json').version")"
-          tag="${GITHUB_REF_NAME}"
-          echo "package.json=$pkg tag=$tag"
-          if [ "$pkg" != "$tag" ]; then
-            echo "::error::tag $tag does not match package.json version $pkg"
-            exit 1
-          fi
+          tag="${GITHUB_REF_NAME#v}"
+          root="$(node -p "require('./package.json').version")"
+          scoped="$(node -p "require('./scoped/package.json').version")"
+          pin="$(node -p "require('./scoped/package.json').dependencies['sql-switch']")"
+          echo "tag=$tag root=$root scoped=$scoped pin=$pin"
+          fail=0
+          [ "$root" = "$tag" ]   || { echo "::error::package.json ($root) != tag ($tag)"; fail=1; }
+          [ "$scoped" = "$tag" ] || { echo "::error::scoped/package.json ($scoped) != tag ($tag)"; fail=1; }
+          [ "$pin" = "$tag" ]    || { echo "::error::scoped pins sql-switch@$pin, expected $tag"; fail=1; }
+          exit $fail
 
-      # npm (not pnpm) does the OIDC handshake for trusted publishing, and it needs a recent npm.
-      # prepublishOnly reruns typecheck/test/smoke/build first, and publishConfig.provenance is on =>
-      # the id-token: write permission above is what lets the provenance attestation get signed.
-      - name: Publish to npm
+      # npm (not pnpm) does the publish + provenance, and it needs a recent npm. prepublishOnly reruns
+      # typecheck/test/smoke/build first => the gate is the same one a PR passed.
+      - name: Publish sql-switch (unscoped, the real code)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           npm install -g npm@latest
           npm publish --access public
+
+      # the alias has no build step (three hand-written re-export files) => prepublishOnly doesn't run
+      # here, the gate above already covered the code it points at. depends on sql-switch@<tag> which
+      # the step above just published.
+      - name: Publish @creative-softworks/sql-switch (scoped alias)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: scoped
+        run: npm publish --access public

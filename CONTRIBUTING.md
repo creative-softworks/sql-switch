@@ -5,7 +5,7 @@ Thanks for taking a look. This is a small project, so the workflow is light.
 ## Getting set up
 
 ```bash
-git clone https://github.com/revxshafi/sql-switch.git
+git clone https://github.com/creative-softworks/sql-switch.git
 cd sql-switch
 pnpm install
 ```
