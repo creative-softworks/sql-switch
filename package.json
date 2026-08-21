@@ -1,6 +1,6 @@
 {
   "name": "sql-switch",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "description": "Universal hot-swappable DAL — SQLite in dev, PostgreSQL in prod, same fluent API",
   "type": "module",
   "packageManager": "pnpm@10.26.1",
@@ -72,6 +72,11 @@
     },
     "pg": {
       "optional": true
+    }
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": ">=0.28.1"
     }
   },
   "devDependencies": {
