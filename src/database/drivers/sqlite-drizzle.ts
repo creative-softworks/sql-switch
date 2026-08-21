@@ -58,7 +58,6 @@ const TX_CHUNK = 500;
  */
 const SCAN_CHUNK = 500;
 
-
 /** hand the loop back for one turn => `setImmediate` runs after pending I/O, so nothing starves */
 function yieldloop(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
@@ -138,9 +137,7 @@ export class SqliteDriver implements DatabaseDriver {
     const key = `${schema}:${table}`;
     if (this.ready.has(key)) return;
 
-    raw.exec(
-      `CREATE TABLE IF NOT EXISTS "${table}" (id TEXT PRIMARY KEY, value TEXT NOT NULL)`,
-    );
+    raw.exec(`CREATE TABLE IF NOT EXISTS "${table}" (id TEXT PRIMARY KEY, value TEXT NOT NULL)`);
     this.ready.add(key);
   }
 

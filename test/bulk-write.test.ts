@@ -74,7 +74,9 @@ describe('sqlite bulk flush', () => {
 
     const raw = new Database(path.join(dir, 'bulk.db'), { readonly: true });
     try {
-      const counted = raw.prepare('SELECT count(*) AS n FROM "rows"').get() as { n: number | bigint };
+      const counted = raw.prepare('SELECT count(*) AS n FROM "rows"').get() as {
+        n: number | bigint;
+      };
       expect(Number(counted.n)).toBe(MAX_BUFFER);
     } finally {
       raw.close();
@@ -159,9 +161,7 @@ describe.skipIf(!url)('postgres bulk flush against a real database', () => {
 
     await driver.batchSet(schema, 'bulk', bulkwrites(1_200));
 
-    const counted = await pool.query<{ n: string }>(
-      `SELECT count(*) AS n FROM "${schema}"."bulk"`,
-    );
+    const counted = await pool.query<{ n: string }>(`SELECT count(*) AS n FROM "${schema}"."bulk"`);
     expect(Number(counted.rows[0]?.n)).toBe(1_200);
     expect(await driver.get(schema, 'bulk', 'key-0')).toEqual({ i: 0, pad: 'x'.repeat(64) });
     expect(await driver.get(schema, 'bulk', 'key-1199')).toEqual({

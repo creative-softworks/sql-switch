@@ -146,7 +146,11 @@ describe('collector observability hooks', () => {
     collector.queue('economy', 'balances', 'user-1', { coins: 1 });
 
     // despite the hook throwing, the retry still lands the write
-    await waitfor('the write to land despite the throwing hook', () => driver.rows.size === 1, 2_000);
+    await waitfor(
+      'the write to land despite the throwing hook',
+      () => driver.rows.size === 1,
+      2_000,
+    );
     expect(spy).toHaveBeenCalled(); // the throw was logged, not propagated
 
     spy.mockRestore();

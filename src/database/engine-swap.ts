@@ -220,7 +220,9 @@ export interface JournalEntry {
 function isJournalEntry(value: unknown): value is JournalEntry {
   if (typeof value !== 'object' || value === null) return false;
   const entry = value as Record<string, unknown>;
-  return typeof entry.rows === 'number' && Number.isFinite(entry.rows) && typeof entry.at === 'string';
+  return (
+    typeof entry.rows === 'number' && Number.isFinite(entry.rows) && typeof entry.at === 'string'
+  );
 }
 
 /** options with every default applied => what the internals actually work with */
@@ -273,7 +275,9 @@ async function mayOverwrite(handler: ConflictHandler, conflict: SwapConflict): P
 
 /** describes a conflict target the way the CLI prompt used to */
 function conflictLabel(conflict: SwapConflict): string {
-  return conflict.kind === 'table' ? `${conflict.schema}.${conflict.table}` : `${conflict.schema}.db`;
+  return conflict.kind === 'table'
+    ? `${conflict.schema}.${conflict.table}`
+    : `${conflict.schema}.db`;
 }
 
 /** List the user tables inside a SQLite file (skips sqlite internal tables). */
@@ -421,7 +425,9 @@ export function readjournal(
   }
 
   if (parsed.version !== JOURNAL_VERSION || parsed.direction !== direction) {
-    onProgress(`${JOURNAL_FILE} is from a different run (${parsed.direction ?? '?'}) => ignoring it`);
+    onProgress(
+      `${JOURNAL_FILE} is from a different run (${parsed.direction ?? '?'}) => ignoring it`,
+    );
     return fresh;
   }
 
@@ -683,7 +689,9 @@ async function swapUp(opts: ResolvedSwapOptions): Promise<EngineSwapResult> {
           // totally different shape, and `SELECT id, value` off it throws & used to take the whole
           // run down. gate the shape too, skip a foreign one the same way a foreign name is skipped
           if (!isDalShape(sqliteColumns(sqlite, table))) {
-            opts.onProgress(`${unit} => skipped, not a sql-switch table (columns aren't id + value)`);
+            opts.onProgress(
+              `${unit} => skipped, not a sql-switch table (columns aren't id + value)`,
+            );
             result.skippedNames.push(unit);
             result.skipped++;
             fullyMigrated = false; // a foreign table in our file => the file stays
@@ -726,9 +734,7 @@ async function swapUp(opts: ResolvedSwapOptions): Promise<EngineSwapResult> {
           // #10/E3: a cursor, not `.all()` => the table is never in memory all at once. it stays
           // open across the awaits below, which is fine (better-sqlite3 is synchronous & nothing
           // else touches this statement), and the for...of resets it however the loop ends
-          const cursor = sqlite
-            .prepare<[], SwapRow>(`SELECT id, value FROM "${table}"`)
-            .iterate();
+          const cursor = sqlite.prepare<[], SwapRow>(`SELECT id, value FROM "${table}"`).iterate();
 
           // one transaction per table => a chunk failing halfway can't leave the target
           // truncated or half filled, it all rolls back together
@@ -810,7 +816,8 @@ async function swapUp(opts: ResolvedSwapOptions): Promise<EngineSwapResult> {
 
       if (openAtStart || openNow || touchedMidRun) {
         const held = openLocalDirs();
-        const detail = held.length > 0 ? ` (open: ${held.join(', ')})` : ' (opened & closed mid-run)';
+        const detail =
+          held.length > 0 ? ` (open: ${held.join(', ')})` : ' (opened & closed mid-run)';
         opts.onProgress(
           `${opts.dataDir} is not quiesced => keeping ${migrated.length} local file(s), close every DAL on it & rerun to clear them${detail}`,
         );
@@ -1020,10 +1027,9 @@ async function swapDown(opts: ResolvedSwapOptions): Promise<EngineSwapResult> {
 
           for (;;) {
             const res: PgTypes.QueryResult = await (lastId === null
-              ? pool.query(
-                  `SELECT id, value FROM "${schema}"."${table}" ORDER BY id LIMIT $1`,
-                  [CHUNK_SIZE],
-                )
+              ? pool.query(`SELECT id, value FROM "${schema}"."${table}" ORDER BY id LIMIT $1`, [
+                  CHUNK_SIZE,
+                ])
               : pool.query(
                   `SELECT id, value FROM "${schema}"."${table}"
                    WHERE id > $1 ORDER BY id LIMIT $2`,

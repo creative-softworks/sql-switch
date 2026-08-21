@@ -30,7 +30,6 @@ const opendirs = new Map<string, number>();
 // 0), but it may have flushed buffered writes we never read => the generation still shows it touched
 const opencounts = new Map<string, number>();
 
-
 /** the one spelling everything is compared on => `./data` and `data/.` are the same directory */
 function normalize(dataDir: string): string {
   return path.resolve(dataDir);

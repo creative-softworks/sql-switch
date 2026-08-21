@@ -14,14 +14,14 @@ const PORT = Number(process.env.PORT ?? 3000);
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
-  '.css':  'text/css',
-  '.js':   'text/javascript',
+  '.css': 'text/css',
+  '.js': 'text/javascript',
   '.json': 'application/json',
-  '.svg':  'image/svg+xml',
-  '.png':  'image/png',
-  '.ico':  'image/x-icon',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
-  '.woff':  'font/woff',
+  '.woff': 'font/woff',
 };
 
 const server = http.createServer((req, res) => {

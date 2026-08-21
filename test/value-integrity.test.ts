@@ -56,7 +56,7 @@ describe('values that cannot round trip', () => {
     expect(() => keyproxy.set('a\u0000b')).toThrow(InvalidValueError);
     expect(() => keyproxy.set({ note: 'a\u0000b' })).toThrow(/note/);
     // property names go into the same jsonb document, so they're just as fatal
-    expect(() => keyproxy.set({ ['bad\u0000key']: 1 })).toThrow(InvalidValueError);
+    expect(() => keyproxy.set({ 'bad\u0000key': 1 })).toThrow(InvalidValueError);
     expect(() => keyproxy.set(['fine', 'a\u0000b'])).toThrow(InvalidValueError);
   });
 

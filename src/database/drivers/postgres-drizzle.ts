@@ -115,7 +115,11 @@ function errcode(err: unknown): string | undefined {
   // drizzle 0.45+ wraps a driver error in DrizzleQueryError & hangs the real pg error off `.cause`,
   // so the sqlstate we need (42P01, 40001, 08006, …) is a hop or two down, not on the top object.
   // walk the cause chain (bounded, a self-referential cause shouldn't spin) & take the first code.
-  for (let cur: unknown = err, hops = 0; typeof cur === 'object' && cur !== null && hops < 8; hops++) {
+  for (
+    let cur: unknown = err, hops = 0;
+    typeof cur === 'object' && cur !== null && hops < 8;
+    hops++
+  ) {
     const code = (cur as { code?: unknown }).code;
     if (typeof code === 'string') return code;
     cur = (cur as { cause?: unknown }).cause;
@@ -344,7 +348,7 @@ export class PostgresDriver implements DatabaseDriver {
   // server side ceiling per transaction, ms. 0 => the caller turned it off
   private statementTimeout: number;
 
-  constructor(private config: PostgresConfig) {
+  constructor(config: PostgresConfig) {
     // validates too => a nonsense timeout throws here rather than on the first query
     this.pool = new Pool(poolOptions(config));
     this.statementTimeout = config.pool?.statementTimeout ?? STATEMENT_TIMEOUT;
@@ -375,9 +379,9 @@ export class PostgresDriver implements DatabaseDriver {
       let schemaRun = this.schemasReady.get(schema);
       if (!schemaRun) {
         // IF NOT EXISTS => idempotent, so a retry after a reset just no-ops
-        schemaRun = withretry(() => this.pool.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`)).then(
-          () => undefined,
-        );
+        schemaRun = withretry(() =>
+          this.pool.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`),
+        ).then(() => undefined);
         this.schemasReady.set(schema, schemaRun);
       }
 
@@ -578,9 +582,7 @@ export class PostgresDriver implements DatabaseDriver {
     let after: string | null = null;
 
     for (;;) {
-      const rows = await this.run(schema, table, () =>
-        this.scanPage(schema, table, prefix, after),
-      );
+      const rows = await this.run(schema, table, () => this.scanPage(schema, table, prefix, after));
       if (rows.length === 0) break;
 
       for (const row of rows) yield row;

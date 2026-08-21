@@ -35,11 +35,7 @@ import {
   savejournal,
 } from '../src/database/engine-swap.js';
 import type { SwapJournal } from '../src/database/engine-swap.js';
-import {
-  localDirOpen,
-  registerLocalDir,
-  releaseLocalDir,
-} from '../src/database/utils/handles.js';
+import { localDirOpen, registerLocalDir, releaseLocalDir } from '../src/database/utils/handles.js';
 import { createDAL } from '../src/database/index.js';
 import { tempdir } from './helpers/tempdal.js';
 import { runfixture } from './helpers/child.js';
@@ -94,7 +90,8 @@ function seedforeigntable(dir: string, schema: string, table: string): void {
 }
 
 /** a pool that drops the throwaway schemas it was told about when the test finishes */
-function pgpool(schemas: string[]): pg.Pool {  const pool = new pg.Pool({ connectionString: url! });
+function pgpool(schemas: string[]): pg.Pool {
+  const pool = new pg.Pool({ connectionString: url! });
   pool.on('error', () => undefined);
   onTestFinished(async () => {
     for (const schema of schemas) {
@@ -503,7 +500,7 @@ describe.skipIf(!url)('a swap interrupted by a signal (E6 + E2 / E5)', () => {
     seedsqlite(dir, schema, { alpha: 3, beta: 3 });
 
     const release = appListener('SIGTERM');
-    let first;
+    let first!: Awaited<ReturnType<typeof engineSwap>>;
     try {
       first = await engineSwap({
         direction: 'up',

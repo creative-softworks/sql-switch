@@ -145,7 +145,7 @@ describe('collector breaker guards', () => {
       async delete(s, t, k) {
         rows.delete(`${s}:${t}:${k}`);
       },
-      // eslint-disable-next-line require-yield
+      // biome-ignore lint/correctness/useYield: fake driver scan yields nothing on purpose
       async *scan() {
         return;
       },

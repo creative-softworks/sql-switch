@@ -26,9 +26,7 @@ describe('test harness', () => {
 
     expect(driver.calls.set).toBe(1);
     expect(driver.calls.batchSet).toBe(1);
-    expect(driver.batches).toEqual([
-      { schema: 'antinuke', table: 'settings', keys: ['guild-2'] },
-    ]);
+    expect(driver.batches).toEqual([{ schema: 'antinuke', table: 'settings', keys: ['guild-2'] }]);
     expect(driver.rows.get(rowkey('antinuke', 'settings', 'guild-2'))).toEqual({ strict: false });
   });
 });

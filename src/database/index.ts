@@ -81,6 +81,7 @@ export class WriteOperation<T> implements PromiseLike<T> {
   ) {}
 
   /** Makes the operation awaitable => waits for the already-scheduled (collector) write. */
+  // biome-ignore lint/suspicious/noThenProperty: WriteOperation is an intentional PromiseLike => await & .then() resolve the already-queued write (see class docstring)
   then<R1 = T, R2 = never>(
     onFulfilled?: ((value: T) => R1 | PromiseLike<R1>) | null,
     onRejected?: ((reason: unknown) => R2 | PromiseLike<R2>) | null,

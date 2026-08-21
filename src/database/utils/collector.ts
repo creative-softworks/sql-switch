@@ -80,7 +80,9 @@ export function resolveCollectorConfig(config?: CollectorConfig): Required<Colle
   const resolved: Required<CollectorConfig> = { ...COLLECTOR_DEFAULTS, ...(config ?? {}) };
 
   if (!Number.isFinite(resolved.time) || resolved.time <= 0) {
-    throw new ConfigurationError('collector.time must be a finite number of milliseconds greater than 0');
+    throw new ConfigurationError(
+      'collector.time must be a finite number of milliseconds greater than 0',
+    );
   }
   if (!Number.isFinite(resolved.recoverAfter) || resolved.recoverAfter <= 0) {
     throw new ConfigurationError(
