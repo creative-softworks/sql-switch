@@ -1,32 +1,26 @@
-# sql-switch
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="sql-switch — one fluent API for your data: SQLite in dev, PostgreSQL in prod, with a one-command engine swap between the two">
+</p>
 
-Universal hot-swappable database abstraction layer for Node.js. Run SQLite locally, PostgreSQL in production — the same fluent API covers both. Migrate your data between engines with one CLI command, or one function call.
+<p align="center">
+  <a href="https://www.npmjs.com/package/sql-switch"><img src="https://img.shields.io/npm/v/sql-switch?logo=npm&amp;color=3fb950&amp;label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/sql-switch"><img src="https://img.shields.io/npm/types/sql-switch?color=7c8cff" alt="TypeScript types included"></a>
+  <img src="https://img.shields.io/node/v/sql-switch?color=56d4dd&amp;label=node" alt="supported Node.js versions">
+  <a href="./LICENSE"><img src="https://img.shields.io/npm/l/sql-switch?color=8b949e&amp;label=license" alt="MIT license"></a>
+</p>
 
-## Install
+<p align="center">
+  <b>One fluent API for your data.</b> Run SQLite while you build, PostgreSQL in production —
+  <br>the same call works on both — then migrate between engines with a single command.
+</p>
 
-```bash
-npm install sql-switch
-```
-
-Also published under the Creative-Softworks scope if you prefer the branded name — it re-exports
-this package unchanged, so pick whichever reads better to you:
-
-```bash
-npm install @creative-softworks/sql-switch
-```
-
-The database drivers are **optional peer dependencies** — install only the one for the engine you
-run, so a SQLite-only app never pulls in `pg` and its build, and vice versa:
-
-```bash
-npm install better-sqlite3   # local mode
-npm install pg               # cloud mode
-```
-
-Each driver is loaded lazily the first time you `connect()` in that mode, so importing the package
-never requires both engines to be present.
+---
 
 ## Quick start
+
+```bash
+npm install sql-switch better-sqlite3
+```
 
 ```ts
 import { createDAL } from 'sql-switch';
@@ -38,17 +32,21 @@ await db.connect({
   collector: { enabled: true, time: 3000 },
 });
 
-// read
-const settings = await db.schema('antinuke').table('settings').key('guild_123').get();
-
-// write (queued, flushed every 3s in bulk)
+// write — queued in RAM, flushed in bulk every 3s
 await db.schema('antinuke').table('settings').key('guild_123').set({ strict: true });
 
-// write immediately, bypassing the collector
+// read — a queued write is visible to the next get() on the same key
+const settings = await db.schema('antinuke').table('settings').key('guild_123').get();
+
+// need it on disk right now? bypass the collector
 await db.schema('antinuke').table('settings').key('guild_123').set({ strict: true }).force();
 ```
 
-## Switch to PostgreSQL
+That is the whole surface: `schema → table → key → operation`. The same chain drives every engine.
+
+## Same code, production engine
+
+Nothing above changes when you go to PostgreSQL — only the `connect()` config does:
 
 ```ts
 await db.connect({
@@ -61,9 +59,38 @@ await db.connect({
 });
 ```
 
-`statementTimeout` (default 30s, `0` disables) is the ceiling on a single operation. Without one a
-query that never answers holds a pool connection for the life of the process — `max` of those and
-every later read blocks with no error at all.
+In local mode each schema is its own `.db` file (`./data/databases/antinuke.db`, WAL on by default);
+in cloud mode each schema is a Postgres logical schema (`antinuke.settings`). Your code never sees
+the difference.
+
+> `statementTimeout` (default 30s, `0` disables) caps a single operation. Without one, a query that
+> never answers holds a pool connection for the life of the process — `max` of those and every later
+> read blocks with no error at all.
+
+The drivers are **optional peer dependencies**, loaded lazily the first time you `connect()` in that
+mode — a SQLite-only app never pulls in `pg`, and vice versa. Install just the one you run:
+
+```bash
+npm install better-sqlite3   # local mode
+npm install pg               # cloud mode
+```
+
+<sub>Prefer the branded name? `@creative-softworks/sql-switch` re-exports this package unchanged.</sub>
+
+## How it works
+
+<p align="center">
+  <img src="./assets/readme/architecture.svg" width="100%" alt="Fluent-API calls pass through a write collector into a lazily loaded, mode-gated driver targeting either local SQLite files or PostgreSQL schemas; engineSwap migrates data between the two, chunked and resumable">
+</p>
+
+- **Write collector** — buffers writes in RAM and flushes them in bulk on an interval, collapsing
+  repeated writes to the same key inside the window. `.force()` bypasses it for an immediate write.
+- **Circuit breaker** — caps pending writes at 5000 keys and trips to read-only on a Postgres
+  outage instead of crashing, then heals itself once the database answers again.
+- **Exit flush** — `SIGINT`, `SIGTERM` and `beforeExit` all drain the buffer on the way out; the
+  library never calls `process.exit()` for you.
+- **Engine swap** — moves data both directions, a chunk at a time, journalled so an interrupted run
+  resumes deterministically.
 
 ## Enumerate, scan & convenience helpers
 
@@ -130,16 +157,13 @@ await db.connect({
 
 ## Engine swap
 
-Move your data between engines either from the terminal or from code.
+Move your data between engines from the terminal or from code.
 
 ### CLI
 
 ```bash
-# local SQLite → production PostgreSQL
-npm run db:engine-swap -- --up
-
-# production PostgreSQL → local SQLite
-npm run db:engine-swap -- --down
+npm run db:engine-swap -- --up     # local SQLite → production PostgreSQL
+npm run db:engine-swap -- --down   # production PostgreSQL → local SQLite
 ```
 
 | Flag | Description |
@@ -152,9 +176,8 @@ npm run db:engine-swap -- --down
 
 ### From code
 
-Same migration, no terminal. Anything you leave out is filled in — `dataDir` defaults to
-`./data/databases`, `connectionString` to `process.env.DATABASE_URL`, and missing schemas,
-tables and directories are created on the target side.
+Anything you leave out is filled in — `dataDir` defaults to `./data/databases`, `connectionString`
+to `process.env.DATABASE_URL`, and missing schemas, tables and directories are created on the target.
 
 ```ts
 import { engineSwap } from 'sql-switch';
@@ -168,9 +191,8 @@ const result = await engineSwap({
 console.log(`${result.totalRows} rows across ${result.tables.length} tables`);
 ```
 
-Or swap a live DAL and keep using the same object. Pending writes are flushed and the open
-handles closed first, then it reconnects on the target engine with your existing collector
-settings:
+Or swap a live DAL and keep using the same object — pending writes are flushed and handles closed
+first, then it reconnects on the target engine with your existing collector settings:
 
 ```ts
 await db.swapEngine({ direction: 'up', onConflict: 'overwrite' });
@@ -190,7 +212,7 @@ await engineSwap({
 
 ### What the migration guarantees
 
-| | |
+| Guarantee | Detail |
 |---|---|
 | Memory | Rows stream a chunk at a time in both directions — peak memory is one chunk, not one table. |
 | Atomicity | Each table moves in its own transaction going up; going down the file is built as `.tmp` and renamed into place. |
@@ -232,8 +254,8 @@ if (result.skippedNames.length) console.warn('left alone:', result.skippedNames)
 
 ## Limits
 
-The library is built so the only hard wall you hit is the database running out of storage. The few
-non-storage constraints below are deliberate, so they're documented rather than left as surprises.
+The only hard wall you hit is the database running out of storage. The few non-storage constraints
+below are deliberate, so they're documented rather than left as surprises.
 
 | Limit | Detail |
 |-------|--------|
@@ -258,3 +280,8 @@ npm run docs:serve   # serve /docs on http://localhost:3000
 ## Requirements
 
 - Node.js >= 22.0.0 (tested on the active LTS / current lines, 22 and 24)
+
+## License
+
+[MIT](./LICENSE)
+
