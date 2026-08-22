@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="430" viewBox="0 0 1200 430"
+     role="img" aria-labelledby="archTitle archDesc">
+  <title id="archTitle">How sql-switch works</title>
+  <desc id="archDesc">Your fluent-API calls go through a write collector into a lazily loaded, mode-gated driver that targets either local SQLite files or PostgreSQL schemas. engineSwap migrates data between the two, chunked and resumable.</desc>
+
+  <defs>
+    <linearGradient id="swap2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#56d4dd"/>
+      <stop offset="1" stop-color="#7c8cff"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="430" rx="20" fill="#0b0f14"/>
+  <rect x="1" y="1" width="1198" height="428" rx="19" fill="none" stroke="#1c232c" stroke-width="2"/>
+
+  <!-- ROW: your code -> collector -> driver -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <!-- A: your code -->
+    <rect x="40" y="70" width="250" height="170" rx="14" fill="#11161d" stroke="#2a313c" stroke-width="2"/>
+    <rect x="40" y="70" width="6" height="170" rx="3" fill="#3fb950"/>
+    <text x="64" y="104" font-family="-apple-system, 'Segoe UI', sans-serif" font-size="18" font-weight="700" fill="#e6edf3">YOUR CODE</text>
+    <text x="64" y="140" font-size="15" fill="#c9d1d9">db.schema('antinuke')</text>
+    <text x="64" y="166" font-size="15" fill="#c9d1d9">  .table('settings')</text>
+    <text x="64" y="192" font-size="15" fill="#c9d1d9">  .key('guild_123')</text>
+    <text x="64" y="218" font-size="15" fill="#c9d1d9">  .set(<tspan fill="#3fb950">{ strict: true }</tspan>)</text>
+
+    <!-- B: write collector -->
+    <rect x="330" y="70" width="330" height="170" rx="14" fill="#11161d" stroke="#2a313c" stroke-width="2"/>
+    <rect x="330" y="70" width="6" height="170" rx="3" fill="#3fb950"/>
+    <text x="354" y="104" font-family="-apple-system, 'Segoe UI', sans-serif" font-size="18" font-weight="700" fill="#e6edf3">WRITE COLLECTOR</text>
+    <text x="354" y="140" font-size="15" fill="#c9d1d9">buffers writes in RAM</text>
+    <text x="354" y="166" font-size="15" fill="#c9d1d9">bulk-flush every 3000 ms</text>
+    <text x="354" y="192" font-size="15" fill="#c9d1d9">collapses repeats · .force() = now</text>
+    <text x="354" y="218" font-size="15" fill="#c9d1d9">circuit breaker trips at 5000</text>
+
+    <!-- C: driver -->
+    <rect x="700" y="70" width="460" height="170" rx="14" fill="#11161d" stroke="#2a313c" stroke-width="2"/>
+    <text x="724" y="104" font-family="-apple-system, 'Segoe UI', sans-serif" font-size="18" font-weight="700" fill="#e6edf3">DRIVER</text>
+    <text x="806" y="104" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" fill="#8b949e">lazy · mode-gated</text>
+    <rect x="716" y="124" width="428" height="48" rx="10" fill="#0e141b" stroke="#2a313c" stroke-width="2"/>
+    <rect x="716" y="124" width="6" height="48" rx="3" fill="#56d4dd"/>
+    <text x="740" y="154" font-size="16" fill="#56d4dd">SQLite<tspan dx="8" fill="#c9d1d9">→  ./data/databases/*.db</tspan></text>
+    <rect x="716" y="182" width="428" height="48" rx="10" fill="#0e141b" stroke="#2a313c" stroke-width="2"/>
+    <rect x="716" y="182" width="6" height="48" rx="3" fill="#7c8cff"/>
+    <text x="740" y="212" font-size="16" fill="#7c8cff">PostgreSQL<tspan dx="8" fill="#c9d1d9">→  logical schemas</tspan></text>
+
+    <!-- connectors -->
+    <path d="M290 155 H330" stroke="#3fb950" stroke-width="2.5" fill="none"/>
+    <path d="M330 155 l-10 -6 v12 z" fill="#3fb950"/>
+    <path d="M660 155 H700" stroke="#3fb950" stroke-width="2.5" fill="none"/>
+    <path d="M700 155 l-10 -6 v12 z" fill="#3fb950"/>
+  </g>
+
+  <!-- BOTTOM: engine swap -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <rect x="40" y="278" width="1120" height="118" rx="16" fill="#0e141b" stroke="#2a313c" stroke-width="2"/>
+    <text x="64" y="318" font-size="20" fill="#3fb950">engineSwap()<tspan dx="8" fill="#8b949e" font-size="16">— migrate data both directions</tspan></text>
+
+    <rect x="64" y="336" width="200" height="44" rx="10" fill="#11161d" stroke="#56d4dd" stroke-width="2"/>
+    <text x="164" y="364" text-anchor="middle" font-size="16" fill="#56d4dd">SQLite files</text>
+
+    <path d="M276 350 H340" stroke="url(#swap2)" stroke-width="2.5" fill="none"/>
+    <path d="M276 350 l10 -6 v12 z" fill="#56d4dd"/>
+    <path d="M340 350 l-10 -6 v12 z" fill="#7c8cff"/>
+    <path d="M276 366 H340" stroke="url(#swap2)" stroke-width="2.5" fill="none"/>
+    <path d="M340 366 l-10 -6 v12 z" fill="#7c8cff"/>
+    <path d="M276 366 l10 -6 v12 z" fill="#56d4dd"/>
+
+    <rect x="352" y="336" width="240" height="44" rx="10" fill="#11161d" stroke="#7c8cff" stroke-width="2"/>
+    <text x="472" y="364" text-anchor="middle" font-size="16" fill="#7c8cff">PostgreSQL schemas</text>
+
+    <text x="628" y="358" font-size="15" fill="#8b949e">chunked streaming · per-table transaction · journalled &amp; resumable</text>
+  </g>
+</svg>
