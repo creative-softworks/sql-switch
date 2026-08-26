@@ -8,11 +8,12 @@
  *
  * @example Connecting
  * ```ts
- * import { createDAL } from 'sql-switch';
+ * import { sqlSwitch } from 'sql-switch';
  *
- * const db = createDAL();
+ * const db = sqlSwitch();
  * await db.connect({
- *   db: { mode: 'local', dataDir: './data/databases', wal: true },
+ *   db: 'local',
+ *   local: { dataDir: './data/databases', wal: true },
  *   collector: { enabled: true, time: 3000 },
  * });
  * ```
@@ -36,7 +37,13 @@ import { TableContext } from './schema-manager.js';
 import { ConfigurationError, NotConnectedError } from './errors.js';
 import { engineSwap } from './engine-swap.js';
 import type { EngineSwapOptions, EngineSwapResult } from './engine-swap.js';
-import type { DALConfig, DatabaseDriver, ScanOptions, SqliteConfig } from './types.js';
+import type {
+  DALConfig,
+  DatabaseDriver,
+  PostgresConfig,
+  ScanOptions,
+  SqliteConfig,
+} from './types.js';
 
 export * from './types.js';
 export * from './errors.js';
@@ -588,7 +595,7 @@ function isMissingPackage(err: unknown, pkg: string): boolean {
 }
 
 /**
- * The DAL instance. Create one with {@link createDAL}, then `connect()` before use.
+ * The DAL instance. Create one with {@link sqlSwitch}, then `connect()` before use.
  * A single instance is meant to be shared across your whole app.
  */
 export class DAL {
@@ -618,16 +625,45 @@ export class DAL {
    * the old one and swap it in.
    */
   async connect(config: DALConfig): Promise<void> {
-    if (!config?.db?.mode) {
-      throw new ConfigurationError('config.db.mode is required — expected "local" or "cloud"');
+    await this.applyConfig(config, false);
+  }
+
+  /**
+   * Reconnect the DAL, optionally switching to the other declared engine.
+   *
+   * With no argument it re-opens the **current** engine — the escape hatch for a wedged connection
+   * or a deliberate "restart the DB without restarting the app". Pass `'local'`/`'cloud'` to switch
+   * the active engine to the other block you declared in `connect()`; the data must already live
+   * there — this reconnects only, it does **not** migrate (that's `swapEngine()`).
+   *
+   * Fail safe: the target engine is built & validated before the current one is torn down, so a bad
+   * target (or a `'cloud'` switch with no `cloud` block) throws and leaves you on the engine you had.
+   * Pending writes are flushed on the way out, same as {@link DAL.close}.
+   *
+   * @param target - Engine to switch to. Omit to reconnect the current one.
+   * @throws {@link NotConnectedError} if called before `connect()`.
+   * @throws {@link ConfigurationError} if the target engine's config is missing or invalid.
+   */
+  async reconnect(target?: 'local' | 'cloud'): Promise<void> {
+    if (!this.config) throw new NotConnectedError();
+    const next: DALConfig = target ? { ...this.config, db: target } : this.config;
+    await this.applyConfig(next, true);
+  }
+
+  // core connect used by both connect() (fresh) & reconnect() (silent) => builds the new engine
+  // fully before tearing the old one down, so a failure here can't leave you with no connection
+  private async applyConfig(config: DALConfig, reconnecting: boolean): Promise<void> {
+    const active = config?.db;
+    if (active !== 'local' && active !== 'cloud') {
+      throw new ConfigurationError('config.db is required — expected "local" or "cloud"');
     }
-    if (config.db.mode !== 'local' && config.db.mode !== 'cloud') {
-      throw new ConfigurationError(
-        `unknown db mode "${(config.db as { mode: string }).mode}" — expected "local" or "cloud"`,
-      );
+    // validate EVERY declared block, not just the active one => a bad cloud connectionString is
+    // caught at connect() while you're still on local, not the first time you flip to cloud in prod
+    if (config.cloud && !config.cloud.connectionString) {
+      throw new ConfigurationError('config.cloud.connectionString is required');
     }
-    if (config.db.mode === 'cloud' && !config.db.connectionString) {
-      throw new ConfigurationError('config.db.connectionString is required in cloud mode');
+    if (active === 'cloud' && !config.cloud) {
+      throw new ConfigurationError('config.db is "cloud" but no config.cloud block was provided');
     }
 
     // resolved up front so a bad collector setting throws before anything is torn down
@@ -637,23 +673,26 @@ export class DAL {
     // you're not using, & its native module, never has to be installed) then construct it. both
     // the import & the constructor run before any teardown, so a failure here can't leave you with
     // no connection at all — the old one is still live until the swap below
-    const dbConfig = config.db;
     const nextDriver: DatabaseDriver =
-      dbConfig.mode === 'local'
+      active === 'local'
         ? await this.buildDriver('better-sqlite3', 'local', async () => {
             const { SqliteDriver } = await import('./drivers/sqlite-drizzle.js');
-            return new SqliteDriver(dbConfig);
+            return new SqliteDriver(config.local ?? {});
           })
         : await this.buildDriver('pg', 'cloud', async () => {
             const { PostgresDriver } = await import('./drivers/postgres-drizzle.js');
-            return new PostgresDriver(dbConfig);
+            // active === 'cloud' => config.cloud validated present above
+            return new PostgresDriver(config.cloud as PostgresConfig);
           });
 
     if (this.driver) {
-      console.warn(
-        '[sql-switch] already connected — flushing & closing the previous engine before' +
-          ' reconnecting. call close() first to do this deliberately',
-      );
+      // a deliberate reconnect() shouldn't nag => only warn on an accidental connect()-over-connect
+      if (!reconnecting) {
+        console.warn(
+          '[sql-switch] already connected — flushing & closing the previous engine before' +
+            ' reconnecting. call close() or reconnect() to do this deliberately',
+        );
+      }
       await this.close();
     }
 
@@ -758,11 +797,8 @@ export class DAL {
     const reconnect = options.reconnect ?? true;
 
     // inherit from the live config so a bare { direction } call just works
-    const dataDir =
-      options.dataDir ?? (current.db.mode === 'local' ? current.db.dataDir : undefined);
-    const connectionString =
-      options.connectionString ??
-      (current.db.mode === 'cloud' ? current.db.connectionString : undefined);
+    const dataDir = options.dataDir ?? current.local?.dataDir;
+    const connectionString = options.connectionString ?? current.cloud?.connectionString;
 
     // built field by field => exactOptionalPropertyTypes rejects explicit undefined
     const swapOptions: EngineSwapOptions = { direction: options.direction };
@@ -787,23 +823,30 @@ export class DAL {
           'cannot reconnect in cloud mode => pass connectionString or set DATABASE_URL',
         );
       }
-      const next: DALConfig = { db: { mode: 'cloud', connectionString: url } };
-      if (current.collector !== undefined) next.collector = current.collector;
+      // flip the active engine to cloud, keep both declared blocks so a later reconnect('local')
+      // still works, and fill in the connection string the migration resolved
+      const next: DALConfig = {
+        ...current,
+        db: 'cloud',
+        cloud: { ...current.cloud, connectionString: url },
+      };
       await this.connect(next);
       return result;
     }
 
-    const next: DALConfig = { db: this.localConfigFrom(current, dataDir) };
-    if (current.collector !== undefined) next.collector = current.collector;
+    const next: DALConfig = {
+      ...current,
+      db: 'local',
+      local: this.localConfigFrom(current, dataDir),
+    };
     await this.connect(next);
     return result;
   }
 
-  // rebuild the local config for a downward swap, keeping the wal choice if there was one
+  // rebuild the local block for a downward swap, keeping wal/busyTimeout if the prior local had them
   private localConfigFrom(current: DALConfig, dataDir: string | undefined): SqliteConfig {
-    const db: SqliteConfig = { mode: 'local' };
+    const db: SqliteConfig = { ...current.local };
     if (dataDir !== undefined) db.dataDir = dataDir;
-    if (current.db.mode === 'local' && current.db.wal !== undefined) db.wal = current.db.wal;
     return db;
   }
 
@@ -818,12 +861,18 @@ export class DAL {
  *
  * @example
  * ```ts
- * const db = createDAL();
- * await db.connect({ db: { mode: 'local' } });
+ * const db = sqlSwitch();
+ * await db.connect({ db: 'local' });
  * ```
  */
-export function createDAL(): DAL {
+export function sqlSwitch(): DAL {
   return new DAL();
 }
 
-export default createDAL;
+/**
+ * @deprecated Renamed to {@link sqlSwitch} in 2.0. Kept as an alias so existing imports keep
+ * working; will be removed in 3.0.
+ */
+export const createDAL = sqlSwitch;
+
+export default sqlSwitch;

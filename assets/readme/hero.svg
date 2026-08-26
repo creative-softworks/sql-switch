@@ -27,7 +27,7 @@
     <text x="2" y="248" font-size="27" fill="#8b949e">PostgreSQL in prod, one-command swap.</text>
 
     <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" fill="#8b949e">
-      <text x="2" y="304">npm 1.0.1</text>
+      <text x="2" y="304">ESM + CJS</text>
       <text x="150" y="304" fill="#30363d">·</text>
       <text x="170" y="304">MIT</text>
       <text x="232" y="304" fill="#30363d">·</text>
@@ -52,14 +52,14 @@
     <rect x="712" y="168" width="6" height="104" rx="3" fill="#56d4dd"/>
     <text x="736" y="206" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700" fill="#56d4dd">SQLite</text>
     <text x="736" y="234" font-size="16" fill="#c9d1d9">local .db file</text>
-    <text x="736" y="256" font-size="15" fill="#8b949e">mode: 'local'</text>
+    <text x="736" y="256" font-size="15" fill="#8b949e">db: 'local'</text>
 
     <!-- Postgres card -->
     <rect x="950" y="168" width="188" height="104" rx="14" fill="#11161d" stroke="#2a313c" stroke-width="2"/>
     <rect x="950" y="168" width="6" height="104" rx="3" fill="#7c8cff"/>
     <text x="974" y="206" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700" fill="#7c8cff">PostgreSQL</text>
     <text x="974" y="234" font-size="16" fill="#c9d1d9">cloud schema</text>
-    <text x="974" y="256" font-size="15" fill="#8b949e">mode: 'cloud'</text>
+    <text x="974" y="256" font-size="15" fill="#8b949e">db: 'cloud'</text>
 
     <!-- swap arrow between the two cards -->
     <path d="M905 214 H945" stroke="url(#swapArrow)" stroke-width="2.5" fill="none"/>

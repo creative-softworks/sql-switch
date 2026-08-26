@@ -38,7 +38,8 @@ async function main(): Promise<void> {
   console.log('\n[1] connect + immediate write via .force()');
   const db = createDAL();
   await db.connect({
-    db: { mode: 'local', dataDir: TEST_DIR, wal: true },
+    db: 'local',
+    local: { dataDir: TEST_DIR, wal: true },
     collector: { enabled: true, time: 300 },
   });
 
@@ -120,7 +121,7 @@ async function main(): Promise<void> {
   await db.close();
 
   const db2 = createDAL();
-  await db2.connect({ db: { mode: 'local', dataDir: TEST_DIR }, collector: { enabled: false } });
+  await db2.connect({ db: 'local', local: { dataDir: TEST_DIR }, collector: { enabled: false } });
   const survived = await db2
     .schema('economy')
     .table('balances')
@@ -142,7 +143,7 @@ async function main(): Promise<void> {
 
   console.log('\n[11] unserializable values are rejected at the call site');
   const db3 = createDAL();
-  await db3.connect({ db: { mode: 'local', dataDir: TEST_DIR }, collector: { enabled: false } });
+  await db3.connect({ db: 'local', local: { dataDir: TEST_DIR }, collector: { enabled: false } });
 
   // circular => JSON.stringify would throw later, inside a flush where nobody sees it
   const circular: Record<string, unknown> = { name: 'loop' };

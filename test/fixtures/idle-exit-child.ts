@@ -15,7 +15,7 @@ const dir = process.argv[2];
 if (!dir) throw new Error('usage: idle-exit-child.ts <dataDir>');
 
 const db = createDAL();
-await db.connect({ db: { mode: 'local', dataDir: dir }, collector: { time: 3_000 } });
+await db.connect({ db: 'local', local: { dataDir: dir }, collector: { time: 3_000 } });
 
 // buffered on purpose => the natural exit still has to put it on disk (beforeExit, see #5)
 await db.schema('antinuke').table('settings').key('guild-1').set({ strict: true });

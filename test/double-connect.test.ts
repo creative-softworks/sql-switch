@@ -15,7 +15,6 @@ import path from 'node:path';
 import { describe, expect, it, vi, onTestFinished } from 'vitest';
 import { createDAL } from '../src/database/index.js';
 import { ConfigurationError } from '../src/database/errors.js';
-import type { DALConfig } from '../src/database/types.js';
 import { tempdir } from './helpers/tempdal.js';
 import { NOFLUSH } from './helpers/collector.js';
 
@@ -42,11 +41,11 @@ describe('double connect', () => {
       await db.close().catch(() => undefined);
     });
 
-    await db.connect({ db: { mode: 'local', dataDir: first }, collector: NOFLUSH });
+    await db.connect({ db: 'local', local: { dataDir: first }, collector: NOFLUSH });
     await db.schema('antinuke').table('settings').key('guild-1').set({ strict: true });
     expect(db.pendingWrites).toBe(1);
 
-    await db.connect({ db: { mode: 'local', dataDir: second }, collector: NOFLUSH });
+    await db.connect({ db: 'local', local: { dataDir: second }, collector: NOFLUSH });
 
     // buffer belonged to the old collector => nothing would ever have flushed it
     expect(db.pendingWrites).toBe(0);
@@ -65,8 +64,8 @@ describe('double connect', () => {
 
     const before = process.listenerCount('SIGTERM');
 
-    await db.connect({ db: { mode: 'local', dataDir: tempdir() }, collector: NOFLUSH });
-    await db.connect({ db: { mode: 'local', dataDir: tempdir() }, collector: NOFLUSH });
+    await db.connect({ db: 'local', local: { dataDir: tempdir() }, collector: NOFLUSH });
+    await db.connect({ db: 'local', local: { dataDir: tempdir() }, collector: NOFLUSH });
 
     // one live collector => one listener, not one per connect() call
     expect(process.listenerCount('SIGTERM')).toBe(before + 1);
@@ -83,10 +82,10 @@ describe('double connect', () => {
       await db.close().catch(() => undefined);
     });
 
-    await db.connect({ db: { mode: 'local', dataDir: tempdir() }, collector: NOFLUSH });
+    await db.connect({ db: 'local', local: { dataDir: tempdir() }, collector: NOFLUSH });
     expect(warn).not.toHaveBeenCalled();
 
-    await db.connect({ db: { mode: 'local', dataDir: tempdir() }, collector: NOFLUSH });
+    await db.connect({ db: 'local', local: { dataDir: tempdir() }, collector: NOFLUSH });
 
     expect(warn.mock.calls.flat().join(' ')).toContain('already connected');
   });
@@ -98,17 +97,15 @@ describe('double connect', () => {
       await db.close().catch(() => undefined);
     });
 
-    await db.connect({ db: { mode: 'local', dataDir: dir }, collector: NOFLUSH });
+    await db.connect({ db: 'local', local: { dataDir: dir }, collector: NOFLUSH });
     await db.schema('antinuke').table('settings').key('guild-1').set({ strict: true });
 
-    // the types already demand a connectionString here => that guard exists for JS callers, so the
-    // cast is the only way to reach it from a typed test
-    await expect(db.connect({ db: { mode: 'cloud' } } as unknown as DALConfig)).rejects.toThrow(
-      ConfigurationError,
-    );
+    // db: 'cloud' selected but no cloud block declared => the runtime guard rejects it before
+    // anything is torn down (the type allows an omitted cloud block, so no cast is needed)
+    await expect(db.connect({ db: 'cloud' })).rejects.toThrow(ConfigurationError);
     // a bad collector interval has to be caught before the old engine is torn down too
     await expect(
-      db.connect({ db: { mode: 'local', dataDir: dir }, collector: { time: 0 } }),
+      db.connect({ db: 'local', local: { dataDir: dir }, collector: { time: 0 } }),
     ).rejects.toThrow(ConfigurationError);
 
     // still the original connection, buffer included
@@ -128,11 +125,11 @@ describe('double connect', () => {
       await db.close().catch(() => undefined);
     });
 
-    await db.connect({ db: { mode: 'local', dataDir: dir }, collector: NOFLUSH });
+    await db.connect({ db: 'local', local: { dataDir: dir }, collector: NOFLUSH });
     await db.schema('antinuke').table('settings').key('guild-1').set({ strict: true });
 
     await expect(
-      db.connect({ db: { mode: 'local', dataDir: dir, busyTimeout: -1 }, collector: NOFLUSH }),
+      db.connect({ db: 'local', local: { dataDir: dir, busyTimeout: -1 }, collector: NOFLUSH }),
     ).rejects.toThrow(ConfigurationError);
 
     // the original engine is still live => buffer intact, reads & writes still work
@@ -156,7 +153,8 @@ describe('double connect', () => {
     // that into a friendly, actionable error rather than surfacing the raw resolver stack
     const err = await db
       .connect({
-        db: { mode: 'cloud', connectionString: 'postgres://ignored' },
+        db: 'cloud',
+        cloud: { connectionString: 'postgres://ignored' },
         collector: NOFLUSH,
       })
       .then(() => null)

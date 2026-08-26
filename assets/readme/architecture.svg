@@ -31,7 +31,7 @@
     <text x="354" y="104" font-family="-apple-system, 'Segoe UI', sans-serif" font-size="18" font-weight="700" fill="#e6edf3">WRITE COLLECTOR</text>
     <text x="354" y="140" font-size="15" fill="#c9d1d9">buffers writes in RAM</text>
     <text x="354" y="166" font-size="15" fill="#c9d1d9">bulk-flush every 3000 ms</text>
-    <text x="354" y="192" font-size="15" fill="#c9d1d9">collapses repeats · .force() = now</text>
+    <text x="354" y="192" font-size="15" fill="#c9d1d9">collapse repeats · .force() = now</text>
     <text x="354" y="218" font-size="15" fill="#c9d1d9">circuit breaker trips at 5000</text>
 
     <!-- C: driver -->
@@ -70,6 +70,6 @@
     <rect x="352" y="336" width="240" height="44" rx="10" fill="#11161d" stroke="#7c8cff" stroke-width="2"/>
     <text x="472" y="364" text-anchor="middle" font-size="16" fill="#7c8cff">PostgreSQL schemas</text>
 
-    <text x="628" y="358" font-size="15" fill="#8b949e">chunked streaming · per-table transaction · journalled &amp; resumable</text>
+    <text x="628" y="358" font-size="13" fill="#8b949e">chunked streaming · per-table transaction · journalled &amp; resumable</text>
   </g>
 </svg>

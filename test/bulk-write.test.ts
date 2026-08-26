@@ -61,7 +61,7 @@ async function tickswhile<T>(work: () => Promise<T>): Promise<{ result: T; ticks
 describe('sqlite bulk flush', () => {
   it(`writes a full ${MAX_BUFFER} key flush without holding the event loop`, async () => {
     const dir = tempdir();
-    const driver = new SqliteDriver({ mode: 'local', dataDir: dir });
+    const driver = new SqliteDriver({ dataDir: dir });
     onTestFinished(async () => {
       await driver.close();
     });
@@ -91,7 +91,7 @@ describe('sqlite bulk flush', () => {
 
   it('keeps chunk boundaries idempotent => a rewritten group just overwrites', async () => {
     const dir = tempdir();
-    const driver = new SqliteDriver({ mode: 'local', dataDir: dir });
+    const driver = new SqliteDriver({ dataDir: dir });
     onTestFinished(async () => {
       await driver.close();
     });
@@ -148,7 +148,7 @@ const url = process.env.DATABASE_URL;
 
 describe.skipIf(!url)('postgres bulk flush against a real database', () => {
   it('lands a 1200 key flush & upserts a rewritten chunk', async () => {
-    const driver = new PostgresDriver({ mode: 'cloud', connectionString: url! });
+    const driver = new PostgresDriver({ connectionString: url! });
     const pool = new pg.Pool({ connectionString: url! });
     // own throwaway schema, dropped below => never touches anything the database already had, and
     // can't race the `swaptest` schema the swap test creates & drops

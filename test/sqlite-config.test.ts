@@ -20,13 +20,15 @@ describe('sqlite busy_timeout config', () => {
 
     await expect(
       db.connect({
-        db: { mode: 'local', dataDir: dir, busyTimeout: -1 },
+        db: 'local',
+        local: { dataDir: dir, busyTimeout: -1 },
         collector: { enabled: false },
       }),
     ).rejects.toThrow(ConfigurationError);
     await expect(
       db.connect({
-        db: { mode: 'local', dataDir: dir, busyTimeout: 1.5 },
+        db: 'local',
+        local: { dataDir: dir, busyTimeout: 1.5 },
         collector: { enabled: false },
       }),
     ).rejects.toThrow(ConfigurationError);
@@ -36,7 +38,8 @@ describe('sqlite busy_timeout config', () => {
     const dir = tempdir();
     const db = createDAL();
     await db.connect({
-      db: { mode: 'local', dataDir: dir, busyTimeout: 1_000 },
+      db: 'local',
+      local: { dataDir: dir, busyTimeout: 1_000 },
       collector: { enabled: false },
     });
 
@@ -49,7 +52,8 @@ describe('sqlite busy_timeout config', () => {
     const dir = tempdir();
     const db = createDAL();
     await db.connect({
-      db: { mode: 'local', dataDir: dir, busyTimeout: 0 },
+      db: 'local',
+      local: { dataDir: dir, busyTimeout: 0 },
       collector: { enabled: false },
     });
     await db.close();

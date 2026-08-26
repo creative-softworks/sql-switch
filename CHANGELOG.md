@@ -8,6 +8,49 @@ While it's pre-1.0, minor versions may carry breaking changes.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-26
+
+The one intentional breaking bump. The config object changes shape and the factory gets a new
+name — both batched here, while the install base is small, so consumers migrate once.
+
+### Changed
+
+- **Config declares both engines and selects the active one** (breaking): `DALConfig.db` is no
+  longer a `SqliteConfig | PostgresConfig` union with a `mode` discriminant on each block. It is
+  now a plain selector — `db: 'local' | 'cloud'` — with the two engine configs declared alongside
+  it under `local` and `cloud`:
+
+  ```ts
+  // before (1.x)
+  await db.connect({ db: { mode: 'local', dataDir: './data' } });
+  // after (2.0)
+  await db.connect({ db: 'local', local: { dataDir: './data' } });
+  ```
+
+  Every declared block is validated at `connect()`, so a bad cloud `connectionString` is caught at
+  boot while you're still on local — not the first time you flip to cloud in production. The `mode`
+  field is gone from `SqliteConfig`/`PostgresConfig` (the selector replaces it). A `db: 'cloud'`
+  with no `cloud` block throws `ConfigurationError`.
+
+### Added
+
+- **`sqlSwitch()`** is the factory's new name (matches the package, fits the `express()`/`fastify()`
+  package-as-factory convention). `createDAL` stays as a `@deprecated` alias — one line, no second
+  code path — and will be removed in 3.0. The default export is `sqlSwitch`, so
+  `import sqlSwitch from 'sql-switch'` needs no change.
+- **`db.reconnect(target?)`**: one primitive for restart / recover-a-wedged-connection / repoint.
+  No argument re-opens the current engine; `'local'`/`'cloud'` switches to the other declared engine
+  **without moving data** (that's still `swapEngine()`). Flushes pending writes first, and is
+  fail-safe — the target engine is built and validated before the current one is torn down, so a bad
+  target leaves you on the engine you had.
+
+### Migration
+
+- `db: { mode: 'local', ...rest }` → `db: 'local', local: { ...rest }`.
+- `db: { mode: 'cloud', connectionString, pool }` → `db: 'cloud', cloud: { connectionString, pool }`.
+- Optionally declare both blocks and drive `db` from an env var (`db: process.env.DB_MODE`).
+- `createDAL()` keeps working; rename to `sqlSwitch()` at your leisure before 3.0.
+
 ## [1.0.1] - 2026-08-21
 
 Tier 1 correctness fixes (packaging + Postgres value integrity + write durability).
@@ -104,7 +147,8 @@ Initial pre-release of the universal SQLite/PostgreSQL DAL.
   crashing, then recovers.
 - Bidirectional engine swap => migrate data SQLite files <=> PostgreSQL schemas.
 
-[Unreleased]: https://github.com/creative-softworks/sql-switch/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/creative-softworks/sql-switch/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/creative-softworks/sql-switch/compare/v1.0.1...v2.0.0
 [1.0.1]: https://github.com/creative-softworks/sql-switch/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/creative-softworks/sql-switch/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/creative-softworks/sql-switch/compare/v0.1.0...v0.2.0
