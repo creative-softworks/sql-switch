@@ -77,7 +77,8 @@ async function main(): Promise<void> {
   console.log('\n[1] seed local SQLite data');
   const local = createDAL();
   await local.connect({
-    db: { mode: 'local', dataDir: TEST_DIR, wal: true },
+    db: 'local',
+    local: { dataDir: TEST_DIR, wal: true },
     collector: { enabled: false },
   });
 
@@ -121,7 +122,8 @@ async function main(): Promise<void> {
   console.log('\n[3] read the migrated data through the cloud driver');
   const cloud = createDAL();
   await cloud.connect({
-    db: { mode: 'cloud', connectionString: url },
+    db: 'cloud',
+    cloud: { connectionString: url },
     collector: { enabled: false },
   });
   const snowflake = await cloud
@@ -149,7 +151,7 @@ async function main(): Promise<void> {
   check('no leftover temp file', !fs.existsSync(`${TEST_DIR}/${SCHEMA}.db.tmp`));
 
   const back = createDAL();
-  await back.connect({ db: { mode: 'local', dataDir: TEST_DIR }, collector: { enabled: false } });
+  await back.connect({ db: 'local', local: { dataDir: TEST_DIR }, collector: { enabled: false } });
   const roundtrip = await back
     .schema(SCHEMA)
     .table(TABLE)
@@ -197,7 +199,8 @@ async function main(): Promise<void> {
   console.log('\n[6] db.swapEngine() migrates & reconnects in place');
   const hot = createDAL();
   await hot.connect({
-    db: { mode: 'local', dataDir: TEST_DIR, wal: true },
+    db: 'local',
+    local: { dataDir: TEST_DIR, wal: true },
     collector: { enabled: true, time: 300 },
   });
   // queued (not forced) => proves swapEngine flushes before touching the files
@@ -282,7 +285,8 @@ async function main(): Promise<void> {
     // and the row that did come down reads back through a local DAL
     const es4back = createDAL();
     await es4back.connect({
-      db: { mode: 'local', dataDir: ES4_DIR },
+      db: 'local',
+      local: { dataDir: ES4_DIR },
       collector: { enabled: false },
     });
     const mixValue = await es4back

@@ -8,7 +8,9 @@
  * import type { DALConfig } from 'sql-switch';
  *
  * const config: DALConfig = {
- *   db: { mode: 'local', dataDir: './data/databases', wal: true },
+ *   db: 'local',
+ *   local: { dataDir: './data/databases', wal: true },
+ *   cloud: { connectionString: process.env.DATABASE_URL ?? '' },
  *   collector: { enabled: true, time: 3000 },
  * };
  * ```
@@ -160,7 +162,6 @@ export interface CollectorConfig {
  * production hits.
  */
 export interface SqliteConfig {
-  mode: 'local';
   /**
    * Directory where `.db` files are stored.
    * @default './data/databases'
@@ -199,7 +200,6 @@ export interface SqliteConfig {
 
 /** Config for production PostgreSQL mode — one logical schema per module. */
 export interface PostgresConfig {
-  mode: 'cloud';
   /** Full Postgres connection string. e.g. `postgres://user:pass@localhost:5432/mydb` */
   connectionString: string;
   pool?: {
@@ -243,9 +243,26 @@ export interface PostgresConfig {
   };
 }
 
-/** Root config object passed to `db.connect()`. */
+/**
+ * Root config object passed to `db.connect()`.
+ *
+ * Declare **both** engines up front and select the active one with `db`. Every declared block is
+ * validated at `connect()`, so a bad cloud `connectionString` is caught at boot even while you're
+ * still running `db: 'local'`. Flip the active engine at runtime with
+ * `db.reconnect('cloud' | 'local')` — that reconnects only, it does **not** move data; use
+ * `engineSwap()` / `db.swapEngine()` when you need the rows to travel too.
+ *
+ * @remarks
+ * `local` may be omitted (every SQLite setting has a default). `cloud` is required whenever `db` is
+ * `'cloud'`, because a Postgres `connectionString` has no default.
+ */
 export interface DALConfig {
-  db: SqliteConfig | PostgresConfig;
+  /** Which declared engine is active. */
+  db: 'local' | 'cloud';
+  /** SQLite settings (local mode). Omit to accept every default. */
+  local?: SqliteConfig;
+  /** PostgreSQL settings (cloud mode). Required when `db` is `'cloud'`. */
+  cloud?: PostgresConfig;
   /** Write collector configuration. Defaults to enabled with a 3s flush interval. */
   collector?: CollectorConfig;
 }
@@ -278,7 +295,7 @@ export interface StoredEntry {
 
 /**
  * Internal driver interface — both SQLite & Postgres adapters implement this.
- * Not part of the public API; use the fluent interface returned by `createDAL()`.
+ * Not part of the public API; use the fluent interface returned by `sqlSwitch()`.
  * @internal
  */
 export interface DatabaseDriver {

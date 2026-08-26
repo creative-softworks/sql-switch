@@ -41,7 +41,8 @@ export async function localdal(collector?: CollectorConfig): Promise<LocalDal> {
   const dir = tempdir();
   const db = createDAL();
   await db.connect({
-    db: { mode: 'local', dataDir: dir, wal: true },
+    db: 'local',
+    local: { dataDir: dir, wal: true },
     ...(collector ? { collector } : {}),
   });
 
@@ -62,7 +63,7 @@ export async function localdal(collector?: CollectorConfig): Promise<LocalDal> {
  */
 export async function reopen(dir: string): Promise<DAL> {
   const db = createDAL();
-  await db.connect({ db: { mode: 'local', dataDir: dir }, collector: { enabled: false } });
+  await db.connect({ db: 'local', local: { dataDir: dir }, collector: { enabled: false } });
 
   onTestFinished(async () => {
     await db.close().catch(() => undefined);

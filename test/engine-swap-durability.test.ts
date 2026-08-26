@@ -228,7 +228,7 @@ describe('quiescence of the source (E1)', () => {
     expect(localDirOpen(dir)).toBe(false);
 
     const db = createDAL();
-    await db.connect({ db: { mode: 'local', dataDir: dir } });
+    await db.connect({ db: 'local', local: { dataDir: dir } });
 
     expect(localDirOpen(dir)).toBe(true);
     // same directory spelled differently is still the same directory
@@ -308,7 +308,7 @@ describe.skipIf(!url)('the up swap against a real database', () => {
     pgpool([schema]);
 
     const db = createDAL();
-    await db.connect({ db: { mode: 'local', dataDir: dir }, collector: { enabled: false } });
+    await db.connect({ db: 'local', local: { dataDir: dir }, collector: { enabled: false } });
     await db.schema(schema).table('settings').key('guild-1').set({ strict: true }).force();
 
     const lines: string[] = [];
