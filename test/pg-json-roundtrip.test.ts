@@ -21,7 +21,7 @@ const url = process.env.DATABASE_URL;
 
 /** driver + a raw pool for cleanup, both torn down (& the schema dropped) when the test finishes */
 function setup(schema: string): { driver: PostgresDriver; pool: pg.Pool } {
-  const driver = new PostgresDriver({ mode: 'cloud', connectionString: url! });
+  const driver = new PostgresDriver({ connectionString: url! });
   const pool = new pg.Pool({ connectionString: url! });
   onTestFinished(async () => {
     await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`).catch(() => undefined);

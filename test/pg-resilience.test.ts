@@ -150,7 +150,7 @@ describe('bounded jittered retry', () => {
 });
 
 describe('pool options', () => {
-  const base = { mode: 'cloud', connectionString: 'postgres://u:p@localhost:5432/db' } as const;
+  const base = { connectionString: 'postgres://u:p@localhost:5432/db' } as const;
 
   it('puts a client side ceiling on every query by default', () => {
     const options = poolOptions(base);
@@ -206,7 +206,7 @@ describe.skipIf(!url)('postgres resilience against a real database', () => {
     // own throwaway schema per test => can't race the other postgres test files vitest runs in
     // parallel, and cleanup can't take anything else with it
     const schema = 'swaptest-heal';
-    const driver = new PostgresDriver({ mode: 'cloud', connectionString: url! });
+    const driver = new PostgresDriver({ connectionString: url! });
     const pool = new pg.Pool({ connectionString: url! });
     onTestFinished(async () => {
       await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`).catch(() => undefined);
@@ -228,7 +228,6 @@ describe.skipIf(!url)('postgres resilience against a real database', () => {
   it('cancels a flush that blocks on a lock & keeps the pool usable', async () => {
     const schema = 'swaptest-lock';
     const driver = new PostgresDriver({
-      mode: 'cloud',
       connectionString: url!,
       pool: { statementTimeout: 400 },
     });

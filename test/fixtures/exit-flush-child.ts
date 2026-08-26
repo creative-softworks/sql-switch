@@ -18,7 +18,7 @@ if (!dir) throw new Error('usage: exit-flush-child.ts <dataDir>');
 
 const db = createDAL();
 // a flush interval far past the test => only the exit path can put this row on disk
-await db.connect({ db: { mode: 'local', dataDir: dir }, collector: { time: 600_000 } });
+await db.connect({ db: 'local', local: { dataDir: dir }, collector: { time: 600_000 } });
 await db.schema('antinuke').table('settings').key('guild-1').set({ strict: true });
 
 console.log('ready');

@@ -23,12 +23,13 @@ npm install sql-switch better-sqlite3
 ```
 
 ```ts
-import { createDAL } from 'sql-switch';
+import { sqlSwitch } from 'sql-switch';
 
-const db = createDAL();
+const db = sqlSwitch();
 
 await db.connect({
-  db: { mode: 'local', dataDir: './data/databases', wal: true },
+  db: 'local',
+  local: { dataDir: './data/databases', wal: true },
   collector: { enabled: true, time: 3000 },
 });
 
@@ -46,18 +47,24 @@ That is the whole surface: `schema → table → key → operation`. The same ch
 
 ## Same code, production engine
 
-Nothing above changes when you go to PostgreSQL — only the `connect()` config does:
+Declare **both** engines up front and pick the active one with `db` — an env var is the usual
+selector. Only the config changes; not one line of your data code does:
 
 ```ts
 await db.connect({
-  db: {
-    mode: 'cloud',
+  db: process.env.DB_MODE ?? 'local',   // 'local' | 'cloud'
+  local: { dataDir: './data/databases', wal: true },
+  cloud: {
     connectionString: process.env.DATABASE_URL,
     pool: { max: 5, statementTimeout: 30_000 },
   },
   collector: { enabled: true, time: 3000 },
 });
 ```
+
+Both declared blocks are validated at `connect()`, so a bad cloud `connectionString` is caught at
+boot even while you're still running local. Flip engines at runtime — no data move, just repoint the
+client — with `db.reconnect('cloud')`; use `db.swapEngine()` when the rows need to travel too.
 
 In local mode each schema is its own `.db` file (`./data/databases/antinuke.db`, WAL on by default);
 in cloud mode each schema is a Postgres logical schema (`antinuke.settings`). Your code never sees
@@ -133,7 +140,8 @@ Defaults are chosen so nothing is silently lost. All of it is configurable.
 
 ```ts
 await db.connect({
-  db: { mode: 'cloud', connectionString: process.env.DATABASE_URL },
+  db: 'cloud',
+  cloud: { connectionString: process.env.DATABASE_URL },
   collector: {
     time: 3000,           // flush interval
     autoRecover: true,    // breaker heals itself after an outage
@@ -247,6 +255,7 @@ if (result.skippedNames.length) console.warn('left alone:', result.skippedNames)
 | `table.startsWith(prefix)` | Sugar for `.entries({ prefix })`. Prefix is bound, never a pattern. |
 | `table.count(opts?)` | Row count, done in the DB (rows never materialized). |
 | `table.deleteAll(opts?)` | Delete every key (or just those under a prefix). |
+| `db.reconnect(target?)` | Re-open the current engine (restart / recover a wedged connection), or repoint to the other declared engine (`'local'`/`'cloud'`) without moving data. Flushes first; fail-safe. |
 | `db.swapEngine(options)` | Migrate to the other engine & reconnect on it. |
 | `db.pendingWrites` | Number of writes currently buffered in the collector. |
 | `db.close()` | Flush pending writes and close all connections. |
